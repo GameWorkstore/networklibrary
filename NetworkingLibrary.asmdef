@@ -1,0 +1,10 @@
+{
+    "name": "NetworkingLibrary",
+    "references": [
+        "Patterns"
+    ],
+    "optionalUnityReferences": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false
+}

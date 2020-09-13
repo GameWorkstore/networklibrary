@@ -1,0 +1,12 @@
+{
+  "name": "com.gameworkstore.networklibrary",
+  "displayName": "GameWorkstore NetLibrary",
+  "version": "0.1.0",
+  "unity": "2020.1",
+  "keywords": ["net", "network", "multiplayer", "gameserver"],
+  "description": "GameWorkstore replacer for ",
+  "icon": ".icon.png",
+  "dependencies": {
+
+    }
+}

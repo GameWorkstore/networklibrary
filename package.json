@@ -3,10 +3,10 @@
   "displayName": "GameWorkstore NetLibrary",
   "version": "0.1.0",
   "unity": "2020.1",
-  "keywords": ["net", "network", "multiplayer", "gameserver"],
-  "description": "GameWorkstore replacer for ",
+  "keywords": [ "net", "network", "multiplayer", "gameserver" ],
+  "description": "Network Library for Unity Projects based on old UNET!",
   "icon": ".icon.png",
   "dependencies": {
-
-    }
+    "com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git"
+  }
 }

@@ -7,6 +7,6 @@
   "description": "Network Library for Unity Projects based on old UNET!",
   "icon": ".icon.png",
   "dependencies": {
-    "com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git"
+	"com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git"
   }
 }

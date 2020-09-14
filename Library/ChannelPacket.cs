@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     // This is used by the ChannelBuffer when buffering traffic.
     // Unreliable channels have a single ChannelPacket, Reliable channels have single "current" packet and a list of buffered ChannelPackets
@@ -48,7 +48,7 @@ namespace UnityEngine.NetLibrary
                 }
                 else
                 {
-                    if (LogFilter.logError) { Debug.LogError("Failed to send internal buffer channel:" + channelId + " bytesToSend:" + m_Position); }
+                    DebugMessege.Log("Failed to send internal buffer channel:" + channelId + " bytesToSend:" + m_Position, DebugLevel.ERROR);
                     result = false;
                 }
             }
@@ -64,7 +64,7 @@ namespace UnityEngine.NetLibrary
                     return false;
                 }
 
-                if (LogFilter.logError) { Debug.LogError("Send Error: " + error + " channel:" + channelId + " bytesToSend:" + m_Position); }
+                DebugMessege.Log("Send Error: " + error + " channel:" + channelId + " bytesToSend:" + m_Position, DebugLevel.ERROR);
                 result = false;
             }
             m_Position = 0;

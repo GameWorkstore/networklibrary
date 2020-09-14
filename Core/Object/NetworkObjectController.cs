@@ -1,9 +1,8 @@
-﻿using Patterns;
-using System;
-using System.Collections.Generic;
-using UnityEngine.Networking;
+﻿using System.Collections.Generic;
+using UnityEngine;
+using GameWorkstore.Patterns;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     internal class NetworkObjectController
     {
@@ -12,8 +11,8 @@ namespace UnityEngine.NetLibrary
 
         internal void AddHandler(
             NetworkHash128 hash,
-            Action<ObjectCreationData> creationHandler,
-            Action<NetworkBaseBehaviour> destroyHandler
+            System.Action<ObjectCreationData> creationHandler,
+            System.Action<NetworkBaseBehaviour> destroyHandler
         ){
             _dictionaryHandlers.Add(hash, new ObjectHandlers { Create = creationHandler, Destroy = destroyHandler });
         }
@@ -279,8 +278,8 @@ namespace UnityEngine.NetLibrary
 
     public struct ObjectHandlers
     {
-        public Action<ObjectCreationData> Create;
-        public Action<NetworkBaseBehaviour> Destroy;
+        public System.Action<ObjectCreationData> Create;
+        public System.Action<NetworkBaseBehaviour> Destroy;
     }
 
     public struct ObjectData

@@ -1,7 +1,8 @@
 ﻿//FROM BoundingFrustum class of https://gist.github.com/StagPoint/4d8ca93923f66ad60ce480124c0d5092
 using System;
+using UnityEngine;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     [Serializable]
     public class NetCPUCamera

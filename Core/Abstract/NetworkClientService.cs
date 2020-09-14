@@ -1,10 +1,10 @@
-﻿using Patterns;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Networking;
+using GameWorkstore.Patterns;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public abstract class NetworkClientService : BaseConnectionService
     {

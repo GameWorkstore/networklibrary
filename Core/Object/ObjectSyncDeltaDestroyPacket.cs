@@ -1,6 +1,6 @@
 ﻿using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     internal class ObjectSyncDeltaDestroyPacket : MsgBase
     {

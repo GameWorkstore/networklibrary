@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     // A growable buffer class used by NetworkReader and NetworkWriter.
     // this is used instead of MemoryStream and BinaryReader/BinaryWriter to avoid allocations.
@@ -165,7 +165,7 @@ namespace UnityEngine.NetLibrary
                 newLen = (int)(newLen * k_GrowthFactor);
                 if (newLen > k_BufferSizeWarning)
                 {
-                    Debug.LogWarning("NetworkBuffer size is " + newLen + " bytes!");
+                    DebugMessege.Log("NetworkBuffer size is " + newLen + " bytes!", DebugLevel.WARNING);
                 }
             }
 

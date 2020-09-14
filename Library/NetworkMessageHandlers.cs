@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public delegate void NetworkMessageDelegate(NetMessage netMsg);
 
@@ -12,11 +12,11 @@ namespace UnityEngine.NetLibrary
         {
             if (handler == null)
             {
-                if (LogFilter.logError) { Debug.LogError("RegisterHandlerSafe id:" + msgType + " handler is null"); }
+                DebugMessege.Log("RegisterHandlerSafe id:" + msgType + " handler is null", DebugLevel.INFO);
                 return;
             }
 
-            if (LogFilter.logDebug) { Debug.Log("RegisterHandlerSafe id:" + msgType + " handler:" + handler.Method.Name); }
+            DebugMessege.Log("RegisterHandlerSafe id:" + msgType + " handler:" + handler.Method.Name, DebugLevel.INFO);
             if (m_MsgHandlers.ContainsKey(msgType))
             {
                 //if (LogFilter.logError) { Debug.LogError("RegisterHandlerSafe id:" + msgType + " handler:" + handler.Method.Name + " conflict"); }
@@ -29,7 +29,7 @@ namespace UnityEngine.NetLibrary
         {
             if (handler == null)
             {
-                if (LogFilter.logError) { Debug.LogError("RegisterHandler id:" + msgType + " handler is null"); }
+                DebugMessege.Log("RegisterHandler id:" + msgType + " handler is null", DebugLevel.ERROR);
                 return;
             }
 
@@ -41,11 +41,10 @@ namespace UnityEngine.NetLibrary
 
             if (m_MsgHandlers.ContainsKey(msgType))
             {
-                if (LogFilter.logDebug) { Debug.Log("RegisterHandler replacing " + msgType); }
-
+                DebugMessege.Log("RegisterHandler replacing " + msgType, DebugLevel.INFO);
                 m_MsgHandlers.Remove(msgType);
             }
-            if (LogFilter.logDebug) { Debug.Log("RegisterHandler id:" + msgType + " handler:" + handler.Method.Name); }
+            DebugMessege.Log("RegisterHandler id:" + msgType + " handler:" + handler.Method.Name, DebugLevel.INFO);
             m_MsgHandlers.Add(msgType, handler);
         }
 

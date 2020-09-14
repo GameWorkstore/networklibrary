@@ -1,8 +1,8 @@
 using System;
 using System.Text;
-using UnityEngine.Networking;
+using UnityEngine;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     /*
     // Binary stream Writer. Supports simple types, buffers, arrays, structs, and nested types

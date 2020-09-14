@@ -1,10 +1,11 @@
-﻿using Patterns;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using UnityEngine.NetLibrary.NetworkSystem;
+using UnityEngine;
 using UnityEngine.Networking;
+using GameWorkstore.NetworkLibrary.NetworkSystem;
+using GameWorkstore.Patterns;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public abstract class BaseConnectionService : IService
     {
@@ -54,7 +55,7 @@ namespace UnityEngine.NetLibrary
             AddHandler(_isAliveCode, IsAlive);
         }
 
-        private static void IsAlive(NetMessage evt){ }
+        private static void IsAlive(NetMessage evt) { }
 
         public override void Postprocess()
         {
@@ -145,7 +146,7 @@ namespace UnityEngine.NetLibrary
             }
         }
 
-        protected  virtual HostTopology GetHostTopology()
+        protected virtual HostTopology GetHostTopology()
         {
             ConnectionConfig config = new ConnectionConfig
             {

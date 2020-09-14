@@ -1,4 +1,4 @@
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public class LogFilter
     {

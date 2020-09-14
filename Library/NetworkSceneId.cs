@@ -1,6 +1,7 @@
 using System;
+using UnityEngine;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     [Serializable]
     public struct NetworkSceneId

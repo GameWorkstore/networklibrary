@@ -1,6 +1,6 @@
 using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     // Handles network messages on client and server
     //public delegate void NetworkMessageDelegate(NetMessage netMsg);

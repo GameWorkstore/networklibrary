@@ -1,6 +1,6 @@
-﻿using UnityEngine.Networking;
+﻿using UnityEngine;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     internal class ObjectSyncDeltaCreatePacket : MsgBase
     {

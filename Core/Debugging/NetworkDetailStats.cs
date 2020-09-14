@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     internal class NetworkDetailStats
     {

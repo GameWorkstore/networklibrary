@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     class ChannelBuffer : IDisposable
     {

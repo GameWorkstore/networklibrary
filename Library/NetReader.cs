@@ -1,8 +1,9 @@
 using System;
 using System.Text;
+using UnityEngine;
 using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public class NetReader
     {

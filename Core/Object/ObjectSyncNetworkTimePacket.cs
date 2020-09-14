@@ -1,4 +1,4 @@
-﻿namespace UnityEngine.NetLibrary
+﻿namespace GameWorkstore.NetworkLibrary
 {
     internal class ObjectSyncNetworkTimePacket : MsgBase
     {

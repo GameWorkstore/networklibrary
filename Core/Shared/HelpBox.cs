@@ -1,9 +1,10 @@
 ﻿using System;
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEngine;
 #endif
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public enum HelpBoxType
     {

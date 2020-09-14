@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     internal static class ArrayPool<T>
     {

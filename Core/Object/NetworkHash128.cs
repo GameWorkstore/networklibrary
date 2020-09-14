@@ -1,6 +1,6 @@
 using System;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     /// <summary>
     /// A 128 bit number used to represent assets in a networking context.

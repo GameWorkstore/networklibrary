@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.UI;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public class DedicatedScreenLog : MonoBehaviour
     {

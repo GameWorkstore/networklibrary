@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using UnityEngine;
 using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     /*
     * wire protocol is a list of :   size   |  msgType     | payload
@@ -34,7 +35,7 @@ namespace UnityEngine.NetLibrary
         //public List<PlayerController> playerControllers { get { return m_PlayerControllers; } }
         //public HashSet<NetworkInstanceId> clientOwnedObjects { get { return m_ClientOwnedObjects; } }
         public bool logNetworkMessages = false;
-        public bool isConnected { get { return hostId != -1; }}
+        public bool isConnected { get { return hostId != -1; } }
 
 
         public class PacketStat
@@ -50,7 +51,7 @@ namespace UnityEngine.NetLibrary
         }
 
         Dictionary<short, PacketStat> m_PacketStats = new Dictionary<short, PacketStat>();
-        internal Dictionary<short, PacketStat> packetStats { get { return m_PacketStats; }}
+        internal Dictionary<short, PacketStat> packetStats { get { return m_PacketStats; } }
 
 #if UNITY_EDITOR
         static int s_MaxPacketStats = 255;//the same as maximum message types
@@ -66,8 +67,10 @@ namespace UnityEngine.NetLibrary
             int numChannels = hostTopology.DefaultConfig.ChannelCount;
             int packetSize = hostTopology.DefaultConfig.PacketSize;
 
-            if ((hostTopology.DefaultConfig.UsePlatformSpecificProtocols) && (UnityEngine.Application.platform != RuntimePlatform.PS4))
+            if ((hostTopology.DefaultConfig.UsePlatformSpecificProtocols) && (Application.platform != RuntimePlatform.PS4))
+            {
                 throw new ArgumentOutOfRangeException("Platform specific protocols are not supported on this platform");
+            }
 
             m_Channels = new ChannelBuffer[numChannels];
             for (int i = 0; i < numChannels; i++)
@@ -376,13 +379,13 @@ namespace UnityEngine.NetLibrary
 
                     if (msgType > MsgType.Highest)
                     {
-                        if(msgType == ObjectSyncPacket.Code)
+                        if (msgType == ObjectSyncPacket.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.ObjectSpawnScene, msgType.ToString() + ":" + msgType.GetType().Name, 1);
-                        else if(msgType == ObjectSyncDeltaCreatePacket.Code)
+                        else if (msgType == ObjectSyncDeltaCreatePacket.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.ObjectSpawn, msgType.ToString() + ":" + msgType.GetType().Name, 1);
-                        else if(msgType == ObjectSyncDeltaDestroyPacket.Code)
+                        else if (msgType == ObjectSyncDeltaDestroyPacket.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.ObjectDestroy, msgType.ToString() + ":" + msgType.GetType().Name, 1);
-                        else if(channelId > 2)
+                        else if (channelId > 2)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.UpdateVars, msgType.ToString() + ":" + msgType.GetType().Name, sz);
                         else if (channelId > 1)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.SyncEvent, msgType.ToString() + ":" + msgType.GetType().Name, sz);

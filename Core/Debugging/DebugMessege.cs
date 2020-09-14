@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
+﻿using UnityEngine;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     public enum DebugLevel
     {

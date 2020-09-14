@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Networking;
 
-namespace UnityEngine.NetLibrary
+namespace GameWorkstore.NetworkLibrary
 {
     // This can't be an interface because users don't need to implement the
     // serialization functions, we'll code generate it for them when they omit it.
@@ -15,7 +16,7 @@ namespace UnityEngine.NetLibrary
     }
 }
 
-namespace UnityEngine.NetLibrary.NetworkSystem
+namespace GameWorkstore.NetworkLibrary.NetworkSystem
 {
     // ---------- General Typed Messages -------------------
 

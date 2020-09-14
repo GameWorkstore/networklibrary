@@ -38,5 +38,21 @@ namespace GameWorkstore.NetworkLibrary
             }
             return false;
         }
+
+        /// <summary>
+        /// Verifies and returns if argument exists and it's value
+        /// </summary>
+        /// <param name="argument"></param>
+        /// <param name="value">output value of argument</param>
+        /// <returns>if exists and value</returns>
+        public static bool GetValue(string argument, out int value)
+        {
+            value = 0;
+            if (!GetValue(argument, out string data))
+            {
+                return false;
+            }
+            return int.TryParse(data, out value);
+        }
     }
 }

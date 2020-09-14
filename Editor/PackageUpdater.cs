@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿#if UNITY_EDITOR
+using UnityEditor;
 using UnityEditor.PackageManager;
 
 namespace GameWorkstore.NetworkLibrary
@@ -12,3 +13,4 @@ namespace GameWorkstore.NetworkLibrary
         }
     }
 }
+#endif

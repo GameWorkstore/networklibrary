@@ -301,7 +301,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void DisconnectAllPlayers()
         {
-            var connids = _connections.Where(t => t.Value != null).Select(t => t.Value.connectionId);
+            var connids = _connections.Where(t => t.Value != null).Select(t => t.Value.connectionId).ToArray();
             foreach (var conn in connids)
             {
                 DisconnectPlayer(conn);

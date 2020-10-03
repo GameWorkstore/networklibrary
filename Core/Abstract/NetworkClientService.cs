@@ -10,7 +10,6 @@ namespace GameWorkstore.NetworkLibrary
     {
         protected NetConnection Connection { get { return CONN ?? null; } }
 
-        private const DebugLevel _debuglevel = DebugLevel.INFO;
         private int CONNECTIONID;
         private string SERVERIP = "127.0.0.1";
         protected NetConnection CONN;
@@ -18,7 +17,7 @@ namespace GameWorkstore.NetworkLibrary
         private NetworkClientObjectController _objects;
 
         private float networkDifference = 0;
-        private List<float> diffs = new List<float>();
+        private readonly List<float> _diffs = new List<float>();
 
         public override void Preprocess()
         {
@@ -68,19 +67,21 @@ namespace GameWorkstore.NetworkLibrary
 
                 STATE = NetworkClientState.CONNECTING;
 
-                if ((NetworkError)error == NetworkError.Ok)
+                switch ((NetworkError)error)
                 {
-                    Log("Start Connection with Server from Socket: " + SOCKETID, DebugLevel.INFO);
-                }
-                else
-                {
-                    Log("Start Connection with Server from Socket failed: " + SOCKETID + "Error:" + (UnityEngine.Networking.NetworkError)error, DebugLevel.ERROR);
+                    case NetworkError.Ok:
+                        Log("Start Connection with Server from Socket: " + SOCKETID, DebugLevel.INFO);
+                        break;
+                    default:
+                        Log("Start Connection with Server from Socket failed: " + SOCKETID + "Error:" + (UnityEngine.Networking.NetworkError)error, DebugLevel.ERROR);
+                        OnConnectError.Invoke();
+                        break;
                 }
             }
             else
             {
                 Log("Failed to Socket Open.", DebugLevel.ERROR);
-                return;
+                OnConnectError.Invoke();
             }
         }
 
@@ -163,8 +164,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void HandleDataReceived(int connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
         {
-            NetConnection conn;
-            if (_connections.TryGetValue(connectionId, out conn))
+            if (_connections.TryGetValue(connectionId, out NetConnection conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
             }
@@ -202,8 +202,8 @@ namespace GameWorkstore.NetworkLibrary
 
         public void SetClientNetworkDifference(float serverTime)
         {
-            diffs.Add(serverTime - SimulationTime());
-            networkDifference = diffs.Sum() / diffs.Count;
+            _diffs.Add(serverTime - SimulationTime());
+            networkDifference = _diffs.Sum() / _diffs.Count;
         }
 
         private void SyncAllObjects(NetMessage evt)
@@ -213,7 +213,7 @@ namespace GameWorkstore.NetworkLibrary
             //After Sync, Invokes Client is Connected!
             if (packet.IsLast)
             {
-                OnConnection.Invoke(CONN);
+                OnConnected.Invoke(CONN);
             }
         }
 
@@ -245,7 +245,8 @@ namespace GameWorkstore.NetworkLibrary
         }
 
         #region EVENTS
-        public Signal<NetConnection> OnConnection = new Signal<NetConnection>();
+        public Signal<NetConnection> OnConnected = new Signal<NetConnection>();
+        public Signal OnConnectError = new Signal();
         public Signal OnDisconnection = new Signal();
         public Signal<NetworkBaseBehaviour> OnObjectCreated = new Signal<NetworkBaseBehaviour>();
         public Signal<NetworkBaseBehaviour> OnObjectDestroyed = new Signal<NetworkBaseBehaviour>();

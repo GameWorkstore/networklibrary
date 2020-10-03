@@ -11,9 +11,6 @@ namespace GameWorkstore.NetworkLibrary
 {
     public abstract class NetworkHostService : BaseConnectionService
     {
-        private const DebugLevel _debuglevel = DebugLevel.INFO;
-
-        internal NetworkServerState STATE;
         private NetworkServerObjectController _objects;
 
         private const float _queueSolverTime = 1 / 18f; //Amount of QueueMesseges per Second
@@ -25,7 +22,6 @@ namespace GameWorkstore.NetworkLibrary
         public override void Preprocess()
         {
             base.Preprocess();
-            STATE = NetworkServerState.NONE;
             _objects = new NetworkServerObjectController();
             _objects.OnObjectCreated.Register(HandleObjectCreated);
             _objects.OnObjectDestroyed.Register(HandleObjectDestroyed);
@@ -40,12 +36,6 @@ namespace GameWorkstore.NetworkLibrary
             base.Postprocess();
         }
 
-        protected void Shutdown()
-        {
-            CloseSocket();
-            STATE = NetworkServerState.TERMINATED;
-        }
-
         public void Init() { Init(PORT, MATCHSIZE, BOTSIZE); }
 
         public void Init(int port) { Init(port, MATCHSIZE, BOTSIZE); }
@@ -57,7 +47,6 @@ namespace GameWorkstore.NetworkLibrary
             BOTSIZE = botSize;
             if (OpenSocket(PORT))
             {
-                STATE = NetworkServerState.STARTED;
                 Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
                 OnBeforeServerStarted.Invoke(true);
                 OnServerStarted.Invoke(true);
@@ -68,6 +57,11 @@ namespace GameWorkstore.NetworkLibrary
                 OnBeforeServerStarted.Invoke(false);
                 OnServerStarted.Invoke(false);
             }
+        }
+
+        public void Shutdown()
+        {
+            CloseSocket();
         }
 
         protected override void UpdateConnection()
@@ -177,8 +171,7 @@ namespace GameWorkstore.NetworkLibrary
             conn.Initialize(address, SOCKETID, connectionId, GetHostTopology());
             AddConnectionToPool(conn);
 
-            if(USENETWORKOBJECTCONTROLLER)
-                ServiceProvider.GetService<EventService>().StartCoroutine(StartClient(conn));
+            ServiceProvider.GetService<EventService>().StartCoroutine(StartClient(conn));
         }
 
         private IEnumerator StartClient(NetConnection conn)
@@ -217,8 +210,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void HandleDisconnection(int connectionId, byte error)
         {
-            NetConnection conn;
-            if (!_connections.TryGetValue(connectionId, out conn))
+            if (!_connections.TryGetValue(connectionId, out NetConnection conn))
             {
                 return;
             }
@@ -249,8 +241,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void HandleDataReceived(int connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
         {
-            NetConnection conn;
-            if (_connections.TryGetValue(connectionId, out conn))
+            if (_connections.TryGetValue(connectionId, out NetConnection conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
             }
@@ -258,10 +249,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public override void Log(string msg, DebugLevel level)
         {
-            if (_debuglevel <= level)
-            {
-                DebugMessege.Log("[Server]:" + msg, level);
-            }
+            DebugMessege.Log("[Server]:" + msg, level);
         }
 
         public void AddQueueble(Func<bool> hasPacket, Func<int, QPacket> getQPacket, Func<bool> clearPacket)

@@ -61,6 +61,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Shutdown()
         {
+            DisconnectAllPlayers();
             CloseSocket();
         }
 

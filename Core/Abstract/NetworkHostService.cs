@@ -36,11 +36,11 @@ namespace GameWorkstore.NetworkLibrary
             base.Postprocess();
         }
 
-        public void Init() { Init(PORT, MATCHSIZE, BOTSIZE); }
+        public void Init() { Init(PORT, MATCHSIZE, BOTSIZE, null); }
+        public void Init(Action<bool> onInit) { Init(PORT, MATCHSIZE, BOTSIZE, onInit); }
+        public void Init(int port) { Init(port, MATCHSIZE, BOTSIZE, null); }
 
-        public void Init(int port) { Init(port, MATCHSIZE, BOTSIZE); }
-
-        public void Init(int port, int matchSize, int botSize)
+        public void Init(int port, int matchSize, int botSize, Action<bool> OnInit)
         {
             PORT = port;
             MATCHSIZE = matchSize;
@@ -48,14 +48,12 @@ namespace GameWorkstore.NetworkLibrary
             if (OpenSocket(PORT))
             {
                 Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
-                OnBeforeServerStarted.Invoke(true);
-                OnServerStarted.Invoke(true);
+                OnInit?.Invoke(true);
             }
             else
             {
                 Log("Failed to Socket Open.", DebugLevel.INFO);
-                OnBeforeServerStarted.Invoke(false);
-                OnServerStarted.Invoke(false);
+                OnInit?.Invoke(true);
             }
         }
 
@@ -434,8 +432,6 @@ namespace GameWorkstore.NetworkLibrary
         public int GetPort() { return PORT; }
 
         #region EVENTS
-        protected Signal<bool> OnBeforeServerStarted = new Signal<bool>();
-        public Signal<bool> OnServerStarted = new Signal<bool>();
         public Signal<NetConnection> OnSocketConnection = new Signal<NetConnection>();
         public Signal<NetConnection> OnSocketDisconnection = new Signal<NetConnection>();
         public Signal<NetworkBaseBehaviour> OnObjectCreated = new Signal<NetworkBaseBehaviour>();

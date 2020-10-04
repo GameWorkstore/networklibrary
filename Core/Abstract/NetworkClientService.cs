@@ -13,6 +13,7 @@ namespace GameWorkstore.NetworkLibrary
         private int CONNECTIONID;
         private string SERVERIP = "127.0.0.1";
         protected NetConnection CONN;
+        private Action<bool> OnConnect;
         private NetworkClientState STATE;
         private NetworkClientObjectController _objects;
 
@@ -43,10 +44,12 @@ namespace GameWorkstore.NetworkLibrary
             base.Postprocess();
         }
 
-        public void Connect(string ip) { Connect(ip, PORT); }
-
-        public void Connect(string ip, int port)
+        public void Connect(string ip) { Connect(ip, PORT, null); }
+        public void Connect(string ip, Action<bool> onConnect) { Connect(ip, PORT, onConnect); }
+        public void Connect(string ip, int port) { Connect(ip, port, null); }
+        public void Connect(string ip, int port, Action<bool> onConnect)
         {
+            OnConnect = onConnect;
             PORT = port;
             SERVERIP = ip;
             if (STATE != NetworkClientState.NONE && STATE != NetworkClientState.DISCONNECTED)
@@ -74,6 +77,7 @@ namespace GameWorkstore.NetworkLibrary
                         break;
                     default:
                         Log("Start Connection with Server from Socket failed: " + SOCKETID + "Error:" + (UnityEngine.Networking.NetworkError)error, DebugLevel.ERROR);
+                        OnConnect?.Invoke(false);
                         OnConnectError.Invoke();
                         break;
                 }
@@ -81,11 +85,14 @@ namespace GameWorkstore.NetworkLibrary
             else
             {
                 Log("Failed to Socket Open.", DebugLevel.ERROR);
+                OnConnect?.Invoke(false);
                 OnConnectError.Invoke();
             }
         }
 
-        public void Disconnect()
+        public void Disconnect() { Disconnect(null); }
+
+        public void Disconnect(Action onDisconnection)
         {
             if (STATE != NetworkClientState.CONNECTING && STATE != NetworkClientState.CONNECTED)
             {
@@ -108,6 +115,7 @@ namespace GameWorkstore.NetworkLibrary
             _objects.DestroyAllObjects();
 
             OnDisconnection.Invoke();
+            onDisconnection?.Invoke();
         }
 
         protected override void UpdateConnection()
@@ -210,11 +218,13 @@ namespace GameWorkstore.NetworkLibrary
         {
             ObjectSyncPacket packet = evt.ReadMessage<ObjectSyncPacket>();
             _objects.SetSyncPacket(packet, CONN);
-            //After Sync, Invokes Client is Connected!
-            if (packet.IsLast)
-            {
-                OnConnected.Invoke(CONN);
-            }
+            
+            //test if last packet
+            if (!packet.IsLast) return;
+            
+            //client is connected!
+            OnConnected.Invoke(CONN);
+            OnConnect?.Invoke(true);
         }
 
         private void SyncDeltaDestroy(NetMessage evt)

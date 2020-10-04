@@ -48,6 +48,7 @@ namespace GameWorkstore.NetworkLibrary
             if (OpenSocket(PORT))
             {
                 Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
+                Preinitialize();
                 OnInit?.Invoke(true);
             }
             else
@@ -56,6 +57,11 @@ namespace GameWorkstore.NetworkLibrary
                 OnInit?.Invoke(true);
             }
         }
+
+        /// <summary>
+        /// Prepare your server to receive connections here!
+        /// </summary>
+        protected abstract void Preinitialize();
 
         public void Shutdown()
         {

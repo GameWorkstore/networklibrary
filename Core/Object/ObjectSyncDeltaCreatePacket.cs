@@ -2,9 +2,9 @@
 
 namespace GameWorkstore.NetworkLibrary
 {
-    internal class ObjectSyncDeltaCreatePacket : MsgBase
+    internal class ObjectSyncDeltaCreatePacket : NetworkPacketBase
     {
-        internal const short Code = 1002;//EnumCodes.ObjectSyncDeltaCreatePacket
+        public override short Code { get { return (short)ReservedBySystem.ObjectSyncDeltaCreatePacket; } }
 
         internal NetworkInstanceId ObjectId;
         internal NetworkHash128 ObjectName;

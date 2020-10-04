@@ -148,14 +148,14 @@ namespace GameWorkstore.NetworkLibrary
             return outStr;
         }
 
-        public TMsg ReadMessage<TMsg>() where TMsg : MsgBase, new()
+        public TMsg ReadMessage<TMsg>() where TMsg : NetworkPacketBase, new()
         {
             var msg = new TMsg();
             msg.Deserialize(reader);
             return msg;
         }
 
-        public void ReadMessage<TMsg>(TMsg msg) where TMsg : MsgBase
+        public void ReadMessage<TMsg>(TMsg msg) where TMsg : NetworkPacketBase
         {
             msg.Deserialize(reader);
         }

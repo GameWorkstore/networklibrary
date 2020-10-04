@@ -469,7 +469,7 @@ namespace GameWorkstore.NetworkLibrary
             Write(value.i15);
         }
 
-        public void Write(MsgBase msg)
+        public void Write(NetworkPacketBase msg)
         {
             msg.Serialize(this);
         }

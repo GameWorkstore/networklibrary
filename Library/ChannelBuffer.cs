@@ -147,7 +147,7 @@ namespace GameWorkstore.NetworkLibrary
             return SendBytes(writer.AsArraySegment().Array, writer.AsArraySegment().Count);
         }
 
-        public bool Send(short msgType, MsgBase msg)
+        public bool Send(short msgType, NetworkPacketBase msg)
         {
             // build the stream
             s_SendWriter.StartMessage(msgType);

@@ -54,7 +54,7 @@ namespace GameWorkstore.NetworkLibrary
         internal Dictionary<short, PacketStat> packetStats { get { return m_PacketStats; } }
 
 #if UNITY_EDITOR
-        static int s_MaxPacketStats = 255;//the same as maximum message types
+        static readonly int _maxPacketStats = 255;//the same as maximum message types
 #endif
 
         public virtual void Initialize(string networkAddress, int networkHostId, int networkConnectionId, HostTopology hostTopology)
@@ -235,17 +235,17 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public virtual bool Send(short msgType, MsgBase msg)
+        public virtual bool Send(short msgType, NetworkPacketBase msg)
         {
             return SendByChannel(msgType, msg, Channels.DefaultReliable);
         }
 
-        public virtual bool SendUnreliable(short msgType, MsgBase msg)
+        public virtual bool SendUnreliable(short msgType, NetworkPacketBase msg)
         {
             return SendByChannel(msgType, msg, Channels.DefaultUnreliable);
         }
 
-        public virtual bool SendByChannel(short msgType, MsgBase msg, int channelId)
+        public virtual bool SendByChannel(short msgType, NetworkPacketBase msg, int channelId)
         {
             m_Writer.StartMessage(msgType);
             msg.Serialize(m_Writer);
@@ -306,7 +306,7 @@ namespace GameWorkstore.NetworkLibrary
         public void ResetStats()
         {
 #if UNITY_EDITOR
-            for (short i = 0; i < s_MaxPacketStats; i++)
+            for (short i = 0; i < _maxPacketStats; i++)
             {
                 if (m_PacketStats.ContainsKey(i))
                 {
@@ -330,6 +330,10 @@ namespace GameWorkstore.NetworkLibrary
 
             HandleReader(reader, receivedSize, channelId);
         }
+
+        private static ObjectSyncPacket _osp = new ObjectSyncPacket();
+        private static ObjectSyncDeltaCreatePacket _osdcp = new ObjectSyncDeltaCreatePacket();
+        private static ObjectSyncDeltaDestroyPacket _osddp = new ObjectSyncDeltaDestroyPacket();
 
         protected void HandleReader(
             NetReader reader,
@@ -379,16 +383,16 @@ namespace GameWorkstore.NetworkLibrary
 
                     if (msgType > MsgType.Highest)
                     {
-                        if (msgType == ObjectSyncPacket.Code)
+                        if (msgType == _osp.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.ObjectSpawnScene, msgType.ToString() + ":" + msgType.GetType().Name, 1);
-                        else if (msgType == ObjectSyncDeltaCreatePacket.Code)
+                        else if (msgType == _osdcp.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.ObjectSpawn, msgType.ToString() + ":" + msgType.GetType().Name, 1);
-                        else if (msgType == ObjectSyncDeltaDestroyPacket.Code)
+                        else if (msgType == _osddp.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.ObjectDestroy, msgType.ToString() + ":" + msgType.GetType().Name, 1);
-                        else if (channelId > 2)
-                            NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.UpdateVars, msgType.ToString() + ":" + msgType.GetType().Name, sz);
-                        else if (channelId > 1)
-                            NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.SyncEvent, msgType.ToString() + ":" + msgType.GetType().Name, sz);
+                        //else if (channelId > 2)
+                            //NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.UpdateVars, msgType.ToString() + ":" + msgType.GetType().Name, sz);
+                        //else if (channelId > 1)
+                            //NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.SyncEvent, msgType.ToString() + ":" + msgType.GetType().Name, sz);
                         else
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.Command, msgType.ToString() + ":" + msgType.GetType().Name, 1);
                     }

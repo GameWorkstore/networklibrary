@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
-using GameWorkstore.NetworkLibrary.NetworkSystem;
 using GameWorkstore.Patterns;
 
 namespace GameWorkstore.NetworkLibrary
@@ -38,7 +37,7 @@ namespace GameWorkstore.NetworkLibrary
         private const short _isAliveCode = 2;
         private const float _queueStayAliveTime = 1f;
         private float _lastStayAliveSolver;
-        private static readonly EmptyMessage _stayAliveMsg = new EmptyMessage();
+        private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
 
         private DataReceived _current;
 
@@ -49,10 +48,10 @@ namespace GameWorkstore.NetworkLibrary
 
             InitTransportLayer();
             SOCKETID = -1;
+            AddHandler<NetworkAlivePacket>(IsAlive);
 #if UNITY_EDITOR
             NetworkDetailStats.ResetAll();
 #endif
-            AddHandler(_isAliveCode, IsAlive);
         }
 
         private static void IsAlive(NetMessage evt) { }
@@ -92,7 +91,7 @@ namespace GameWorkstore.NetworkLibrary
             {
                 foreach (var conn in _connections)
                 {
-                    conn.Value.SendByChannel(_isAliveCode, _stayAliveMsg, CHANNEL_RELIABLE_ORDERED);
+                    conn.Value.SendByChannel(_isAliveCode, _stayAlivePacket, CHANNEL_RELIABLE_ORDERED);
                 }
                 _lastStayAliveSolver = SimulationTime();
             }
@@ -200,14 +199,16 @@ namespace GameWorkstore.NetworkLibrary
             _connections.Remove(connectionId);
         }
 
-        public void AddHandler(short code, NetworkMessageDelegate function)
+        public void AddHandler<T>(NetworkMessageDelegate function) where T : NetworkPacketBase
         {
-            _handlers.RegisterHandler(code, function);
+            var packet = default(T);
+            _handlers.RegisterHandler(packet.Code, function);
         }
 
-        public void RemoveHandler(short code)
+        public void RemoveHandler<T>() where T : NetworkPacketBase
         {
-            _handlers.UnregisterHandler(code);
+            var packet = default(T);
+            _handlers.UnregisterHandler(packet.Code);
         }
 
         protected abstract void HandleConnection(int connectionId, byte error);

@@ -3,12 +3,19 @@ using System.Collections.Generic;
 
 namespace GameWorkstore.NetworkLibrary
 {
-    public class NetworkSignal<TMsg> where TMsg : NetworkMessageBase, new()
+    public class NetworkSignal<TMsg> where TMsg : NetworkPacketBase, new()
     {
         internal event Action<TMsg> Action = null;
         internal List<TMsg> cache = new List<TMsg>();
+        /// <summary>
+        /// Allow debug incoming messeges
+        /// </summary>
         public bool Debug = false;
 
+        /// <summary>
+        /// called 
+        /// </summary>
+        /// <param name="evt"></param>
         public void Invoke(NetMessage evt)
         {
             TMsg msg = evt.ReadMessage<TMsg>();
@@ -29,6 +36,10 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
+        /// <summary>
+        /// Register a handler. The first handler will flush cached messeges.
+        /// </summary>
+        /// <param name="e"></param>
         public void Register(Action<TMsg> e)
         {
             Action += e;
@@ -42,14 +53,13 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
+        /// <summary>
+        /// Unregister a handler.
+        /// </summary>
+        /// <param name="e"></param>
         public void Unregister(Action<TMsg> e)
         {
             Action -= e;
         }
-    }
-
-    public class NetworkMessageBase : MsgBase
-    {
-        public NetConnection conn;
     }
 }

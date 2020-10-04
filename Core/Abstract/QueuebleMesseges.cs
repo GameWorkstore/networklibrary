@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace GameWorkstore.NetworkLibrary
 {
@@ -8,10 +7,10 @@ namespace GameWorkstore.NetworkLibrary
     {
         public short Code;
         public byte Channel;
-        public MsgBase Data;
+        public NetworkPacketBase Data;
     }
 
-    public abstract class QueueVisibilityPacket<T> : NetworkMessageBase where T : QueuebleVisibilityClass, new()
+    public abstract class QueueVisibilityPacket<T> : NetworkPacketBase where T : QueuebleVisibilityClass, new()
     {
         protected int connectionTarget;
         protected const float maximumLostVisibilityTime = 0.25f; //250ms
@@ -79,7 +78,7 @@ namespace GameWorkstore.NetworkLibrary
         }
     }
 
-    public abstract class QueueblePacket<T> : NetworkMessageBase where T : QueuebleClass, new()
+    public abstract class QueueblePacket<T> : NetworkPacketBase where T : QueuebleClass, new()
     {
         //WriteOnly
         private static Dictionary<NetworkInstanceId, T> unique = new Dictionary<NetworkInstanceId, T>();

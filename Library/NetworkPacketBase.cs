@@ -1,26 +1,44 @@
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Networking;
 
 namespace GameWorkstore.NetworkLibrary
 {
     // This can't be an interface because users don't need to implement the
     // serialization functions, we'll code generate it for them when they omit it.
-    public abstract class MsgBase
+    public abstract class NetworkPacketBase
     {
+        public NetConnection conn;
+
         // De-serialize the contents of the reader into this message
-        public virtual void Deserialize(NetReader reader) {}
+        public abstract void Deserialize(NetReader reader);
 
         // Serialize the contents of this message into the writer
-        public virtual void Serialize(NetWriter writer) {}
+        public abstract void Serialize(NetWriter writer);
+
+        public abstract short Code { get; }
+    }
+
+    public enum ReservedBySystem
+    {
+        Alive = 1,
+        ObjectSyncNetworkTimePacket = 2,
+        ObjectSyncPacket = 3,
+        ObjectSyncDeltaCreatePacket = 4,
+        ObjectSyncDeltaDestroyPacket = 5,
+    }
+
+    public class NetworkAlivePacket : NetworkPacketBase
+    {
+        public override short Code { get { return (short)ReservedBySystem.Alive; } }
+        public override void Deserialize(NetReader reader) { }
+        public override void Serialize(NetWriter writer) { }
     }
 }
 
+/*
 namespace GameWorkstore.NetworkLibrary.NetworkSystem
 {
     // ---------- General Typed Messages -------------------
 
-    public class StringMessage : MsgBase
+    public class StringMessage : NetworkPacketBase
     {
         public string value;
 
@@ -44,7 +62,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    public class IntegerMessage : MsgBase
+    public class IntegerMessage : NetworkPacketBase
     {
         public int value;
 
@@ -68,7 +86,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    public class EmptyMessage : MsgBase
+    public class EmptyMessage : NetworkPacketBase
     {
         public override void Deserialize(NetReader reader)
         {
@@ -81,30 +99,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
 
     // ---------- Public System Messages -------------------
 
-    public class ErrorMessage : MsgBase
-    {
-        public int errorCode;
-
-        public override void Deserialize(NetReader reader)
-        {
-            errorCode = reader.ReadUInt16();
-        }
-
-        public override void Serialize(NetWriter writer)
-        {
-            writer.Write((ushort)errorCode);
-        }
-    }
-
-    public class ReadyMessage : EmptyMessage
-    {
-    }
-
-    public class NotReadyMessage : EmptyMessage
-    {
-    }
-
-    public class AddPlayerMessage : MsgBase
+    public class AddPlayerMessage : NetworkPacketBase
     {
         public short playerControllerId;
         public int msgSize;
@@ -131,7 +126,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    public class RemovePlayerMessage : MsgBase
+    public class RemovePlayerMessage : NetworkPacketBase
     {
         public short playerControllerId;
 
@@ -147,7 +142,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
     }
 
 
-    public class PeerAuthorityMessage : MsgBase
+    public class PeerAuthorityMessage : NetworkPacketBase
     {
         public int connectionId;
         public NetworkInstanceId netId;
@@ -174,7 +169,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         public short playerControllerId;
     }
 
-    public class PeerInfoMessage : MsgBase
+    public class PeerInfoMessage : NetworkPacketBase
     {
         public int connectionId;
         public string address;
@@ -234,7 +229,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    public class PeerListMessage : MsgBase
+    public class PeerListMessage : NetworkPacketBase
     {
         public PeerInfoMessage[] peers;
         public int oldServerConnectionId;
@@ -265,7 +260,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
 
     // ---------- Internal System Messages -------------------
 
-    class ObjectSpawnMessage : MsgBase
+    class ObjectSpawnMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public NetworkHash128 assetId;
@@ -289,7 +284,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class ObjectSpawnSceneMessage : MsgBase
+    class ObjectSpawnSceneMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public NetworkSceneId sceneId;
@@ -313,7 +308,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class ObjectSpawnFinishedMessage : MsgBase
+    class ObjectSpawnFinishedMessage : NetworkPacketBase
     {
         public uint state;
 
@@ -328,7 +323,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class ObjectDestroyMessage : MsgBase
+    class ObjectDestroyMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
 
@@ -343,7 +338,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class OwnerMessage : MsgBase
+    class OwnerMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public short playerControllerId;
@@ -361,7 +356,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class ClientAuthorityMessage : MsgBase
+    class ClientAuthorityMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public bool authority;
@@ -379,7 +374,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class OverrideTransformMessage : MsgBase
+    class OverrideTransformMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public byte[] payload;
@@ -403,7 +398,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class AnimationMessage : MsgBase
+    class AnimationMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public int      stateHash;      // if non-zero, then Play() this animation, skipping transitions
@@ -431,7 +426,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class AnimationParametersMessage : MsgBase
+    class AnimationParametersMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public byte[]   parameters;
@@ -453,7 +448,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class AnimationTriggerMessage : MsgBase
+    class AnimationTriggerMessage : NetworkPacketBase
     {
         public NetworkInstanceId netId;
         public int      hash;
@@ -471,7 +466,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         }
     }
 
-    class LobbyReadyToBeginMessage : MsgBase
+    class LobbyReadyToBeginMessage : NetworkPacketBase
     {
         public byte slotId;
         public bool readyState;
@@ -495,7 +490,7 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
         public byte channel;
     }
 
-    class CRCMessage : MsgBase
+    class CRCMessage : NetworkPacketBase
     {
         public CRCMessageEntry[] scripts;
 
@@ -522,4 +517,4 @@ namespace GameWorkstore.NetworkLibrary.NetworkSystem
             }
         }
     }
-}
+}*/

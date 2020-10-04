@@ -422,7 +422,7 @@ namespace GameWorkstore.NetworkLibrary
             return m_buf.ToString();
         }
 
-        public TMsg ReadMessage<TMsg>() where TMsg : MsgBase, new()
+        public TMsg ReadMessage<TMsg>() where TMsg : NetworkPacketBase, new()
         {
             var msg = new TMsg();
             msg.Deserialize(this);

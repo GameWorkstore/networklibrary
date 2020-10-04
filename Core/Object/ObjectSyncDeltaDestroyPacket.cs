@@ -1,10 +1,9 @@
-﻿using UnityEngine.Networking;
-
+﻿
 namespace GameWorkstore.NetworkLibrary
 {
-    internal class ObjectSyncDeltaDestroyPacket : MsgBase
+    internal class ObjectSyncDeltaDestroyPacket : NetworkPacketBase
     {
-        internal const short Code = 1003;//EnumCodes.ObjectSyncDeltaDestroyPacket
+        public override short Code { get { return (short)ReservedBySystem.ObjectSyncDeltaDestroyPacket; } }
 
         internal NetworkInstanceId ObjectId;
 

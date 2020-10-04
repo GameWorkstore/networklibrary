@@ -82,7 +82,7 @@ namespace GameWorkstore.NetworkLibrary
                         foreach (var connid in _connections.Keys)
                         {
                             QPacket packet = q.GetQPacket(connid);
-                            Send(connid, packet.Code, packet.Data, packet.Channel);
+                            Send(connid, packet.Data, packet.Channel);
                         }
                         q.ClearPacket();
                     }
@@ -95,33 +95,33 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public bool Send(int connid, short type, MsgBase msg, byte channel)
+        public bool Send(int connid, NetworkPacketBase msg, byte channel)
         {
             if (_connections.ContainsKey(connid))
             {
-                if (!_connections[connid].SendByChannel(type, msg, channel))
+                if (!_connections[connid].SendByChannel(msg.Code, msg, channel))
                 {
-                    Log("Error while sending packet[" + type + "] to connection[" + connid + "]", DebugLevel.WARNING);
+                    Log("Error while sending packet[" + msg.Code + "] to connection[" + connid + "]", DebugLevel.WARNING);
                     return false;
                 }
             }
             else
             {
-                Log("Error while sending packet[" + type + "] to connection[" + connid + "] because it doesn't ", DebugLevel.WARNING);
+                Log("Error while sending packet[" + msg.Code + "] to connection[" + connid + "] because it doesn't ", DebugLevel.WARNING);
                 return false;
             }
 
             return true;
         }
 
-        public bool SendToAll(short type, MsgBase msg, byte channel, int ignoreConnectionId = -1)
+        public bool SendToAll(NetworkPacketBase msg, byte channel, int ignoreConnectionId = -1)
         {
             bool sucess = true;
             if (ignoreConnectionId < 0)
             {
                 foreach (var connid in _connections.Keys)
                 {
-                    sucess &= Send(connid, type, msg, channel);
+                    sucess &= Send(connid, msg, channel);
                 }
                 return sucess;
             }
@@ -131,19 +131,19 @@ namespace GameWorkstore.NetworkLibrary
                 {
                     continue;
                 }
-                sucess &= Send(connid, type, msg, channel);
+                sucess &= Send(connid, msg, channel);
             }
             return sucess;
         }
 
-        public bool SendToConnections(short type, MsgBase msg, byte channel, IEnumerable<int> connectionIds)
+        public bool SendToConnections(NetworkPacketBase msg, byte channel, IEnumerable<int> connectionIds)
         {
             bool sucess = true;
             foreach (var connid in connectionIds)
             {
                 if (_connections.ContainsKey(connid))
                 {
-                    sucess &= Send(connid, type, msg, channel);
+                    sucess &= Send(connid, msg, channel);
                 }
             }
             return sucess;
@@ -193,7 +193,7 @@ namespace GameWorkstore.NetworkLibrary
 
             for (int i = 0; i < 3; i++)
             {
-                if (!Send(conn.connectionId, ObjectSyncNetworkTimePacket.Code, new ObjectSyncNetworkTimePacket() { NetworkTime = GetHostNetworkTime() }, CHANNEL_RELIABLE))
+                if (!Send(conn.connectionId, new ObjectSyncNetworkTimePacket() { NetworkTime = GetHostNetworkTime() }, CHANNEL_RELIABLE))
                 {
                     Log("Failed to Send SyncNetworkPacket", DebugLevel.ERROR);
                 }
@@ -203,7 +203,7 @@ namespace GameWorkstore.NetworkLibrary
 
             foreach (var packet in packets)
             {
-                if (!Send(conn.connectionId, ObjectSyncPacket.Code, packet, CHANNEL_RELIABLE_ORDERED))
+                if (!Send(conn.connectionId, packet, CHANNEL_RELIABLE_ORDERED))
                 {
                     Log("Failed to Send SyncPacket", DebugLevel.ERROR);
                 }
@@ -237,7 +237,7 @@ namespace GameWorkstore.NetworkLibrary
             }
             else
             {
-                Log("Client disconnected sucessfully:" + connectionId, DebugLevel.INFO);                
+                Log("Client disconnected sucessfully:" + connectionId, DebugLevel.INFO);
             }
 
             RemoveConnectionFromPool(connectionId);
@@ -326,18 +326,17 @@ namespace GameWorkstore.NetworkLibrary
             foreach (var conn in _connections)
             {
                 bool auth = behaviour.connectionId == conn.Key;
-                send &= Send(conn.Key, ObjectSyncDeltaCreatePacket.Code,
-                    new ObjectSyncDeltaCreatePacket()
-                    {
-                        ObjectId = behaviour.networkInstanceId,
-                        ObjectName = behaviour.networkHash,
-                        Position = behaviour.transform.position,
-                        Quaternion = behaviour.transform.rotation,
-                        Authority = auth,
-                        InternalParams = auth? behaviour.internalParams : new byte[0],
-                        SharedParams = behaviour.sharedParams
-                    },
-                    CHANNEL_ALLCOSTDELIVERY
+                send &= Send(conn.Key, new ObjectSyncDeltaCreatePacket()
+                {
+                    ObjectId = behaviour.networkInstanceId,
+                    ObjectName = behaviour.networkHash,
+                    Position = behaviour.transform.position,
+                    Quaternion = behaviour.transform.rotation,
+                    Authority = auth,
+                    InternalParams = auth ? behaviour.internalParams : new byte[0],
+                    SharedParams = behaviour.sharedParams
+                },
+                CHANNEL_ALLCOSTDELIVERY
                 );
             }
             if (!send)
@@ -401,7 +400,8 @@ namespace GameWorkstore.NetworkLibrary
             bool send = true;
             foreach (var conn in _connections)
             {
-                send &= Send(conn.Key, ObjectSyncDeltaDestroyPacket.Code,
+                send &= Send(
+                    conn.Key,
                     new ObjectSyncDeltaDestroyPacket() { ObjectId = behaviour.networkInstanceId },
                     CHANNEL_ALLCOSTDELIVERY
                 );
@@ -455,7 +455,7 @@ namespace GameWorkstore.NetworkLibrary
     internal struct QPacketClass
     {
         internal Func<bool> HasPacket;
-        internal Func<int,QPacket> GetQPacket;
+        internal Func<int, QPacket> GetQPacket;
         internal Func<bool> ClearPacket;
     }
 }

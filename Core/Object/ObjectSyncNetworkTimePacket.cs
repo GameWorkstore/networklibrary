@@ -1,8 +1,8 @@
 ﻿namespace GameWorkstore.NetworkLibrary
 {
-    internal class ObjectSyncNetworkTimePacket : MsgBase
+    internal class ObjectSyncNetworkTimePacket : NetworkPacketBase
     {
-        internal const short Code = 1000;//EnumCodes.ObjectSyncNetworkTimePacket
+        public override short Code { get { return (short)ReservedBySystem.ObjectSyncNetworkTimePacket; } }
 
         internal float NetworkTime;
         

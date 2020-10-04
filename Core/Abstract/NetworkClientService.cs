@@ -27,10 +27,10 @@ namespace GameWorkstore.NetworkLibrary
             _objects = new NetworkClientObjectController();
             _objects.OnObjectCreated.Register(HandleObjectCreated);
             _objects.OnObjectDestroyed.Register(HandleObjectDestroyed);
-            AddHandler(ObjectSyncNetworkTimePacket.Code, SyncNetworkTime);
-            AddHandler(ObjectSyncPacket.Code, SyncAllObjects);
-            AddHandler(ObjectSyncDeltaCreatePacket.Code, SyncDeltaCreate);
-            AddHandler(ObjectSyncDeltaDestroyPacket.Code, SyncDeltaDestroy);
+            AddHandler<ObjectSyncNetworkTimePacket>(SyncNetworkTime);
+            AddHandler<ObjectSyncPacket>(SyncAllObjects);
+            AddHandler<ObjectSyncDeltaCreatePacket>(SyncDeltaCreate);
+            AddHandler<ObjectSyncDeltaDestroyPacket>(SyncDeltaDestroy);
         }
 
         public override void Postprocess()
@@ -61,7 +61,7 @@ namespace GameWorkstore.NetworkLibrary
                 return;
             }
 
-            if(OpenSocket())
+            if (OpenSocket())
             {
                 Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
 
@@ -133,7 +133,7 @@ namespace GameWorkstore.NetworkLibrary
             return STATE;
         }
 
-        public bool Send(short v, MsgBase request, int channel)
+        public bool Send(short v, NetworkPacketBase request, int channel)
         {
 #if UNITY_EDITOR
             if (CONN.SendByChannel(v, request, channel))
@@ -218,10 +218,10 @@ namespace GameWorkstore.NetworkLibrary
         {
             ObjectSyncPacket packet = evt.ReadMessage<ObjectSyncPacket>();
             _objects.SetSyncPacket(packet, CONN);
-            
+
             //test if last packet
             if (!packet.IsLast) return;
-            
+
             //client is connected!
             OnConnected.Invoke(CONN);
             OnConnect?.Invoke(true);

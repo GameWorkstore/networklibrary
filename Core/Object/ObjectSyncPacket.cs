@@ -2,18 +2,18 @@
 
 namespace GameWorkstore.NetworkLibrary
 {
-    internal class ObjectSyncPacket : MsgBase
+    internal class ObjectSyncPacket : NetworkPacketBase
     {
-        internal const short Code = 1001;//EnumCodes.ObjectSyncPacket
+        public override short Code { get { return (short)ReservedBySystem.ObjectSyncPacket; } }
 
         internal bool IsLast = false;
-        internal NetworkHash128[] ObjectName = new NetworkHash128[0];
-        internal NetworkInstanceId[] ObjectId = new NetworkInstanceId[0];
-        internal NetworkInstanceId[] Authority = new NetworkInstanceId[0];
-        internal Vector3[] Position = new Vector3[0];
-        internal Quaternion[] Quaternion = new Quaternion[0];
-        internal byte[][] InternalParams = new byte[0][];
-        internal byte[][] SharedParams = new byte[0][];
+        internal NetworkHash128[] ObjectName = System.Array.Empty<NetworkHash128>();
+        internal NetworkInstanceId[] ObjectId = System.Array.Empty<NetworkInstanceId>();
+        internal NetworkInstanceId[] Authority = System.Array.Empty<NetworkInstanceId>();
+        internal Vector3[] Position = System.Array.Empty<Vector3>();
+        internal Quaternion[] Quaternion = System.Array.Empty<Quaternion>();
+        internal byte[][] InternalParams = System.Array.Empty<byte[]>();
+        internal byte[][] SharedParams = System.Array.Empty<byte[]>();
 
         public override void Serialize(NetWriter writer)
         {

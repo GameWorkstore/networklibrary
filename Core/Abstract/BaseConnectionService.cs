@@ -100,30 +100,38 @@ namespace GameWorkstore.NetworkLibrary
 #endif
         }
 
-        private bool HasSocket()
+        protected bool HasSocket()
         {
             return SOCKETID > -1;
         }
 
         protected bool OpenSocket(int port = 0)
         {
-            SOCKETID = NetworkTransport.AddHost(GetHostTopology(), port);
+            if (HasSocket())
+            {
+                Log("Cannot open socket because socket is already open.", DebugLevel.ERROR);
+                return false;
+            }
 
-            if (SOCKETID > -1)
+            SOCKETID = NetworkTransport.AddHost(GetHostTopology(), port);
+            bool socketInitialized = HasSocket();
+            if (socketInitialized)
             {
                 _eventService.Update.Register(UpdateConnection);
             }
 
-            return SOCKETID > -1;
+            return socketInitialized;
         }
 
         protected void CloseSocket()
         {
-            if (SOCKETID > -1)
+            if (!HasSocket())
             {
-                _eventService.Update.Unregister(UpdateConnection);
-                NetworkTransport.RemoveHost(SOCKETID);
+                Log("Cannot close socket because socket isn't open.", DebugLevel.ERROR);
+                return;
             }
+            _eventService.Update.Unregister(UpdateConnection);
+            NetworkTransport.RemoveHost(SOCKETID);
             SOCKETID = -1;
         }
 

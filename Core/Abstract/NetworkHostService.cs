@@ -58,6 +58,11 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
+        public bool IsInitialized()
+        {
+            return HasSocket();
+        }
+
         /// <summary>
         /// Prepare your server to receive connections here!
         /// </summary>

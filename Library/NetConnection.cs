@@ -235,20 +235,20 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public virtual bool Send(short msgType, NetworkPacketBase msg)
+        public virtual bool Send(NetworkPacketBase packet)
         {
-            return SendByChannel(msgType, msg, Channels.DefaultReliable);
+            return SendByChannel(packet, Channels.DefaultReliable);
         }
 
-        public virtual bool SendUnreliable(short msgType, NetworkPacketBase msg)
+        public virtual bool SendUnreliable(NetworkPacketBase packet)
         {
-            return SendByChannel(msgType, msg, Channels.DefaultUnreliable);
+            return SendByChannel(packet, Channels.DefaultUnreliable);
         }
 
-        public virtual bool SendByChannel(short msgType, NetworkPacketBase msg, int channelId)
+        public virtual bool SendByChannel(NetworkPacketBase packet, int channelId)
         {
-            m_Writer.StartMessage(msgType);
-            msg.Serialize(m_Writer);
+            m_Writer.StartMessage(packet.Code);
+            packet.Serialize(m_Writer);
             m_Writer.FinishMessage();
             return SendWriter(m_Writer, channelId);
         }

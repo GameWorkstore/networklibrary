@@ -34,7 +34,6 @@ namespace GameWorkstore.NetworkLibrary
         byte error;
         NetworkEventType evnt;
 
-        private const short _isAliveCode = 2;
         private const float _queueStayAliveTime = 1f;
         private float _lastStayAliveSolver;
         private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
@@ -91,7 +90,7 @@ namespace GameWorkstore.NetworkLibrary
             {
                 foreach (var conn in _connections)
                 {
-                    conn.Value.SendByChannel(_isAliveCode, _stayAlivePacket, CHANNEL_RELIABLE_ORDERED);
+                    conn.Value.SendByChannel(_stayAlivePacket, CHANNEL_RELIABLE_ORDERED);
                 }
                 _lastStayAliveSolver = SimulationTime();
             }

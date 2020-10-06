@@ -8,8 +8,6 @@ namespace GameWorkstore.NetworkLibrary
 {
     public abstract class NetworkClientService : BaseConnectionService
     {
-        protected NetConnection Connection { get { return CONN ?? null; } }
-
         private int CONNECTIONID;
         private string SERVERIP = "127.0.0.1";
         protected NetConnection CONN;
@@ -133,20 +131,20 @@ namespace GameWorkstore.NetworkLibrary
             return STATE;
         }
 
-        public bool Send(short v, NetworkPacketBase request, int channel)
+        public bool Send(NetworkPacketBase request, int channel)
         {
 #if UNITY_EDITOR
-            if (CONN.SendByChannel(v, request, channel))
+            if (CONN.SendByChannel(request, channel))
             {
                 return true;
             }
             else
             {
-                Log("Failed to send[" + v + "] packet.", DebugLevel.WARNING);
+                Log("Failed to send[" + request.Code + "] packet.", DebugLevel.WARNING);
             }
             return false;
 #else
-            return CONN.SendByChannel(v, request, channel);
+            return CONN.SendByChannel(request.Code, request, channel);
 #endif
         }
 

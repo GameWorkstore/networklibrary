@@ -104,7 +104,7 @@ namespace GameWorkstore.NetworkLibrary
         {
             if (_connections.ContainsKey(connid))
             {
-                if (!_connections[connid].SendByChannel(msg.Code, msg, channel))
+                if (!_connections[connid].SendByChannel(msg, channel))
                 {
                     Log("Error while sending packet[" + msg.Code + "] to connection[" + connid + "]", DebugLevel.WARNING);
                     return false;
@@ -439,7 +439,6 @@ namespace GameWorkstore.NetworkLibrary
             return GetRTT(connectionId) / 1000f;
         }
 
-        public abstract bool GetProcessHealth();
         public int GetPort() { return PORT; }
 
         #region EVENTS

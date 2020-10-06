@@ -207,15 +207,15 @@ namespace GameWorkstore.NetworkLibrary
             _connections.Remove(connectionId);
         }
 
-        public void AddHandler<T>(NetworkMessageDelegate function) where T : NetworkPacketBase
+        public void AddHandler<T>(NetworkMessageDelegate function) where T : NetworkPacketBase, new()
         {
-            var packet = default(T);
+            var packet = new T();
             _handlers.RegisterHandler(packet.Code, function);
         }
 
-        public void RemoveHandler<T>() where T : NetworkPacketBase
+        public void RemoveHandler<T>() where T : NetworkPacketBase, new()
         {
-            var packet = default(T);
+            var packet = new T();
             _handlers.UnregisterHandler(packet.Code);
         }
 

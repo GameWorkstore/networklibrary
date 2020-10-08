@@ -133,19 +133,11 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool Send(NetworkPacketBase request, int channel)
         {
-#if UNITY_EDITOR
-            if (CONN.SendByChannel(request, channel))
-            {
-                return true;
-            }
-            else
+            if (!CONN.SendByChannel(request, channel))
             {
                 Log("Failed to send[" + request.Code + "] packet.", DebugLevel.WARNING);
             }
             return false;
-#else
-            return CONN.SendByChannel(request.Code, request, channel);
-#endif
         }
 
         public int GetRTT()

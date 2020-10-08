@@ -32,7 +32,10 @@ namespace GameWorkstore.NetworkLibrary
         {
             _objects.OnObjectCreated.Unregister(HandleObjectCreated);
             _objects.OnObjectDestroyed.Unregister(HandleObjectDestroyed);
-            Shutdown();
+            if (IsInitialized())
+            {
+                Shutdown();
+            }
             base.Postprocess();
         }
 

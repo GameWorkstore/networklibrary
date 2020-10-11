@@ -18,11 +18,36 @@ namespace GameWorkstore.NetworkLibrary
 
     public enum ReservedBySystem
     {
-        Alive = 1,
-        ObjectSyncNetworkTimePacket = 2,
-        ObjectSyncPacket = 3,
-        ObjectSyncDeltaCreatePacket = 4,
-        ObjectSyncDeltaDestroyPacket = 5,
+        AuthenticationRequest = 1,
+        AuthenticationResponse = 2,
+        Alive = 3,
+        ObjectSyncNetworkTimePacket = 4,
+        ObjectSyncPacket = 5,
+        ObjectSyncDeltaCreatePacket = 6,
+        ObjectSyncDeltaDestroyPacket = 7,
+    }
+
+    public class AuthenticationRequestPacket : NetworkPacketBase
+    {
+        public override short Code { get { return (short)ReservedBySystem.AuthenticationRequest; } }
+        public override void Deserialize(NetReader reader) { }
+        public override void Serialize(NetWriter writer) { }
+    }
+
+    public class AuthenticationResponsePacket : NetworkPacketBase
+    {
+        public override short Code { get { return (short)ReservedBySystem.AuthenticationResponse; } }
+        public string Payload;
+
+        public override void Deserialize(NetReader reader)
+        {
+            Payload = reader.ReadString();
+        }
+
+        public override void Serialize(NetWriter writer)
+        {
+            writer.Write(Payload);
+        }
     }
 
     public class NetworkAlivePacket : NetworkPacketBase

@@ -11,17 +11,16 @@ namespace GameWorkstore.NetworkLibrary
         ChannelPacket m_CurrentPacket;
 
         float m_LastFlushTime;
-
-        byte m_ChannelId;
-        int m_MaxPacketSize;
-        bool m_IsReliable;
+        private byte m_ChannelId;
+        private int m_MaxPacketSize;
+        private bool m_IsReliable;
         bool m_IsBroken;
         int m_MaxPendingPacketCount;
 
         const int k_MaxFreePacketCount = 512; //  this is for all connections. maybe make this configurable
         const int k_MaxPendingPacketCount = 16;  // this is per connection. each is around 1400 bytes (MTU)
 
-        Queue<ChannelPacket> m_PendingPackets;
+        private Queue<ChannelPacket> m_PendingPackets;
         static List<ChannelPacket> s_FreePackets;
         static internal int pendingPacketCount; // this is across all connections. only used for profiler metrics.
 
@@ -161,7 +160,7 @@ namespace GameWorkstore.NetworkLibrary
         internal bool SendBytes(byte[] bytes, int bytesToSend)
         {
 #if UNITY_EDITOR
-            NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, MsgType.HLAPIMsg, "msg", 1);
+            NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIMsg, "msg", 1);
 #endif
             if (bytesToSend <= 0)
             {
@@ -237,7 +236,7 @@ namespace GameWorkstore.NetworkLibrary
         ChannelPacket AllocPacket()
         {
 #if UNITY_EDITOR
-            NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, MsgType.HLAPIPending, "msg", pendingPacketCount);
+            NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIPending, "msg", pendingPacketCount);
 #endif
             if (s_FreePackets.Count == 0)
             {
@@ -254,7 +253,7 @@ namespace GameWorkstore.NetworkLibrary
         static void FreePacket(ChannelPacket packet)
         {
 #if UNITY_EDITOR
-            NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, MsgType.HLAPIPending, "msg", pendingPacketCount);
+            NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIPending, "msg", pendingPacketCount);
 #endif
             if (s_FreePackets.Count >= k_MaxFreePacketCount)
             {
@@ -267,7 +266,7 @@ namespace GameWorkstore.NetworkLibrary
         public bool SendInternalBuffer()
         {
 #if UNITY_EDITOR
-            NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, MsgType.LLAPIMsg, "msg", 1);
+            NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.LLAPIMsg, "msg", 1);
 #endif
             if (m_IsReliable && m_PendingPackets.Count > 0)
             {

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.Networking.Types;
 using GameWorkstore.Patterns;
 
 namespace GameWorkstore.NetworkLibrary
@@ -16,22 +15,25 @@ namespace GameWorkstore.NetworkLibrary
         private const float _queueSolverTime = 1 / 18f; //Amount of QueueMesseges per Second
         private float _lastQueueSolver = 0;
         private static List<QPacketClass> _classes;
+        private static readonly AuthenticationRequestPacket _authrequest = new AuthenticationRequestPacket();
 
         protected bool USENETWORKOBJECTCONTROLLER = true;
 
         public override void Preprocess()
         {
             base.Preprocess();
+            _classes = new List<QPacketClass>();
             _objects = new NetworkServerObjectController();
             _objects.OnObjectCreated.Register(HandleObjectCreated);
             _objects.OnObjectDestroyed.Register(HandleObjectDestroyed);
-            _classes = new List<QPacketClass>();
+            AddHandler<AuthenticationResponsePacket>(HandleAuthentication, true);
         }
 
         public override void Postprocess()
         {
             _objects.OnObjectCreated.Unregister(HandleObjectCreated);
             _objects.OnObjectDestroyed.Unregister(HandleObjectDestroyed);
+            RemoveHandler<AuthenticationResponsePacket>(true);
             if (IsInitialized())
             {
                 Shutdown();
@@ -79,7 +81,6 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void UpdateConnection()
         {
-            base.UpdateConnection();
             //Queues
             if (SimulationTime() > _lastQueueSolver + _queueSolverTime)
             {
@@ -97,10 +98,7 @@ namespace GameWorkstore.NetworkLibrary
                 }
                 _lastQueueSolver = SimulationTime();
             }
-            foreach (var conn in _connections)
-            {
-                conn.Value.FlushChannels();
-            }
+            base.UpdateConnection();
         }
 
         public bool Send(int connid, NetworkPacketBase msg, byte channel)
@@ -157,34 +155,57 @@ namespace GameWorkstore.NetworkLibrary
             return sucess;
         }
 
-        public bool DisconnectPlayer(int connectionId)
-        {
-            byte error;
-            HandleDisconnection(connectionId, 0);
-            return NetworkTransport.Disconnect(SOCKETID, connectionId, out error);
-        }
-
         protected override void HandleConnection(int connectionId, byte error)
         {
             if (!IsOk(error))
             {
-                Log("ConnectionError:[ID:" + connectionId + "][ERROR:" + (UnityEngine.Networking.NetworkError)error + "]", DebugLevel.ERROR);
+                Log("ConnectionError:[ID:" + connectionId + "][ERROR:" + (NetworkError)error + "]", DebugLevel.ERROR);
                 return;
             }
-            Log("Connected:[ID:" + connectionId + "]", DebugLevel.INFO);
+            if (_connections.Count < MATCHSIZE)
+            {
+                Log("PreConnected:[ID:" + connectionId + "]", DebugLevel.INFO);
+                // request authentication
+                var conn = CreatePreconnection(connectionId);
+                conn.SendByChannel(_authrequest, CHANNEL_RELIABLE);
+            }
+            else
+            {
+                RefuseConnection(connectionId);
+            }
+        }
 
-            string address;
-            int port;
-            NetworkID networkId;
-            NodeID node;
-            byte error2;
-            NetworkTransport.GetConnectionInfo(SOCKETID, connectionId, out address, out port, out networkId, out node, out error2);
+        /// <summary>
+        /// Authenticate player using payload and invokes AuthenticateConnection of RefuseConnection as result
+        /// </summary>
+        /// <param name="packet"></param>
+        protected virtual void HandleAuthentication(NetMessage packet)
+        {
+            var authentication = packet.ReadMessage<AuthenticationResponsePacket>();
+            //Accepts all authenticated until fill up:
+            if(_connections.Count < MATCHSIZE && authentication.Payload.Equals("default"))
+            {
+                AuthenticateConnection(authentication.conn.connectionId);
+            }
+            else
+            {
+                RefuseConnection(authentication.conn.connectionId);
+            }
+        }
 
-            NetConnection conn = new NetConnection();
-            conn.Initialize(address, SOCKETID, connectionId, GetHostTopology());
-            AddConnectionToPool(conn);
-
+        private void AuthenticateConnection(int connectionId)
+        {
+            RemovePreconnection(connectionId);
+            Log("Authenticated:[ID:" + connectionId + "]", DebugLevel.INFO);
+            var conn = CreateConnection(connectionId);
             ServiceProvider.GetService<EventService>().StartCoroutine(StartClient(conn));
+        }
+
+        private void RefuseConnection(int connectionId)
+        {
+            Log("Refused:[ID:" + connectionId + "]", DebugLevel.INFO);
+            RemovePreconnection(connectionId);
+            NetworkTransport.Disconnect(SOCKETID, connectionId, out _);
         }
 
         private IEnumerator StartClient(NetConnection conn)
@@ -218,38 +239,44 @@ namespace GameWorkstore.NetworkLibrary
                 yield return null;
             }
 
+            Log("Connected:[ID:" + conn.connectionId + "]", DebugLevel.INFO);
             OnSocketConnection.Invoke(conn);
         }
 
         protected override void HandleDisconnection(int connectionId, byte error)
         {
-            if (!_connections.TryGetValue(connectionId, out NetConnection conn))
+            // connection
+            if (_connections.TryGetValue(connectionId, out NetConnection conn))
             {
-                return;
-            }
+                conn.Disconnect();
 
-            conn.Disconnect();
-
-            var networkError = (NetworkError)error;
-
-            if (networkError != NetworkError.Ok)
-            {
-                if (networkError != NetworkError.Timeout)
+                var networkError = (NetworkError)error;
+                if (networkError != NetworkError.Ok)
                 {
-                    Log("Client disconnect by Error, connectionId: " + connectionId + " error: " + networkError, DebugLevel.WARNING);
+                    if (networkError != NetworkError.Timeout)
+                    {
+                        Log("Client disconnect by Error, connectionId: " + connectionId + " error: " + networkError, DebugLevel.WARNING);
+                    }
+                    else
+                    {
+                        Log("Client disconnect by Timeout, connectionId: " + connectionId + " error: " + networkError, DebugLevel.INFO);
+                    }
                 }
                 else
                 {
-                    Log("Client disconnect by Timeout, connectionId: " + connectionId + " error: " + networkError, DebugLevel.INFO);
+                    Log("Client disconnected sucessfully:" + connectionId, DebugLevel.INFO);
                 }
-            }
-            else
-            {
-                Log("Client disconnected sucessfully:" + connectionId, DebugLevel.INFO);
-            }
 
-            RemoveConnectionFromPool(connectionId);
-            OnSocketDisconnection.Invoke(conn);
+                RemoveConnection(connectionId);
+                OnSocketDisconnection.Invoke(conn);
+                return;
+            }
+            // preconnection
+            if (_preconnections.TryGetValue(connectionId, out conn))
+            {
+                conn.Disconnect();
+                RemovePreconnection(connectionId);
+            }
         }
 
         protected override void HandleDataReceived(int connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
@@ -257,6 +284,13 @@ namespace GameWorkstore.NetworkLibrary
             if (_connections.TryGetValue(connectionId, out NetConnection conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
+                return;
+            }
+
+            if(_preconnections.TryGetValue(connectionId, out conn))
+            {
+                conn.TransportReceive(buffer, receiveSize, channelId);
+                return;
             }
         }
 
@@ -311,8 +345,19 @@ namespace GameWorkstore.NetworkLibrary
             _objects.RemoveHandler(hash);
         }
 
+        public bool DisconnectPlayer(int connectionId)
+        {
+            HandleDisconnection(connectionId, 0);
+            return NetworkTransport.Disconnect(SOCKETID, connectionId, out _);
+        }
+
         public void DisconnectAllPlayers()
         {
+            var preconnids = _preconnections.Where(t => t.Value != null).Select(t => t.Value.connectionId).ToArray();
+            foreach (var preconn in preconnids)
+            {
+                RefuseConnection(preconn);
+            }
             var connids = _connections.Where(t => t.Value != null).Select(t => t.Value.connectionId).ToArray();
             foreach (var conn in connids)
             {
@@ -347,63 +392,16 @@ namespace GameWorkstore.NetworkLibrary
                 CHANNEL_ALLCOSTDELIVERY
                 );
             }
+
             if (!send)
             {
                 Log("Failed to Send SyncDeltaCreatePacket for Entire List of connections", DebugLevel.ERROR);
             }
-
-            //int[] players = _connections.Keys.ToArray();
-
-            /*Action action =
-                () =>
-                {
-                    bool send = true;
-                    foreach (var connid in players)
-                    {
-                        send &= Send(connid, ObjectSyncDeltaCreatePacket.Code,
-                            new ObjectSyncDeltaCreatePacket()
-                            {
-                                ObjectId = behaviour.networkInstanceId,
-                                ObjectName = behaviour.networkHash,
-                                Position = behaviour.transform.position,
-                                Quaternion = behaviour.transform.rotation,
-                                Authority = behaviour.connectionId == connid,
-                                Parameters = behaviour.parameters
-                            },
-                            CHANNEL_RELIABLE
-                        );
-                    }
-                    if (!send)
-                    {
-                        Log("Failed to Send SyncDeltaCreatePacket for Entire List of connections", DebugLevel.ERROR);
-                    }
-                };
-            ServiceProvider.GetService<EventService>().QueueAction(action);*/
         }
 
         private void HandleObjectDestroyed(NetworkBaseBehaviour behaviour)
         {
             OnObjectDestroyed.Invoke(behaviour);
-
-            /*int[] players = _connections.Keys.ToArray();
-
-            Action action =
-                () =>
-                {
-                    bool send = true;
-                    foreach (var connid in players)
-                    {
-                        send &= Send(connid, ObjectSyncDeltaDestroyPacket.Code,
-                            new ObjectSyncDeltaDestroyPacket() { ObjectId = behaviour.networkInstanceId, },
-                            CHANNEL_RELIABLE
-                        );
-                    }
-                    if (!send)
-                    {
-                        Log("Failed to Send SyncDeltaCreatePacket for Entire List of connections", DebugLevel.ERROR);
-                    }
-                };
-            ServiceProvider.GetService<EventService>().QueueAction(action);*/
 
             bool send = true;
             foreach (var conn in _connections)
@@ -414,6 +412,7 @@ namespace GameWorkstore.NetworkLibrary
                     CHANNEL_ALLCOSTDELIVERY
                 );
             }
+
             if (!send)
             {
                 Log("Failed to Send SyncDeltaCreatePacket for Entire List of connections", DebugLevel.ERROR);

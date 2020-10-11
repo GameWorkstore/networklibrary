@@ -7,6 +7,7 @@ namespace GameWorkstore.NetworkLibrary.Tests
     {
         void Awake()
         {
+            DebugMessege.SetLogLevel(DebugLevel.INFO);
             ServiceProvider.GetService<SampleServer>().Init((success) =>
                 ServiceProvider.GetService<SampleClient>().Connect("127.0.0.1")
             );

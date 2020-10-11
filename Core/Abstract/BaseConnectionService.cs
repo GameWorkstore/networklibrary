@@ -14,16 +14,20 @@ namespace GameWorkstore.NetworkLibrary
         protected int PORT = 8080;
         protected int MATCHSIZE = 8;
         protected int BOTSIZE = 0;
-        protected NetworkMessageHandlers _handlers = new NetworkMessageHandlers();
+        protected NetworkHandlers _prehandlers = new NetworkHandlers();
+        protected NetworkHandlers _handlers = new NetworkHandlers();
+        protected Dictionary<int, NetConnection> _preconnections = new Dictionary<int, NetConnection>();
         protected Dictionary<int, NetConnection> _connections = new Dictionary<int, NetConnection>();
 
         private static int NETWORK_INITIALIZATION = 0;
         private static uint UNIQUEID = 1;
+        private static int PRECONNECTIONMAX = 8;
 
         public byte CHANNEL_STATE_COUNT = 0;
         public byte CHANNEL_RELIABLE_ORDERED { get; private set; }
         public byte CHANNEL_RELIABLE { get; private set; }
         public byte CHANNEL_ALLCOSTDELIVERY { get; private set; }
+        public byte CHANNEL_UNRELIABLE { get; private set; }
         public byte[] CHANNEL_STATECHANNEL { get; private set; }
 
         private int outConnectionId;
@@ -34,10 +38,9 @@ namespace GameWorkstore.NetworkLibrary
         byte error;
         NetworkEventType evnt;
 
+        private float _lastStayAliveSolver = 0;
         private const float _queueStayAliveTime = 1f;
-        private float _lastStayAliveSolver;
         private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
-
         private DataReceived _current;
 
         public override void Preprocess()
@@ -48,6 +51,7 @@ namespace GameWorkstore.NetworkLibrary
             InitTransportLayer();
             SOCKETID = -1;
             AddHandler<NetworkAlivePacket>(IsAlive);
+            AddHandler<NetworkAlivePacket>(IsAlive, true);
 #if UNITY_EDITOR
             NetworkDetailStats.ResetAll();
 #endif
@@ -57,6 +61,8 @@ namespace GameWorkstore.NetworkLibrary
 
         public override void Postprocess()
         {
+            RemoveHandler<NetworkAlivePacket>(true);
+            RemoveHandler<NetworkAlivePacket>();
             DestroyTransportLayer();
         }
 
@@ -68,7 +74,14 @@ namespace GameWorkstore.NetworkLibrary
                 switch (evnt)
                 {
                     case NetworkEventType.ConnectEvent: HandleConnection(outConnectionId, error); break;
-                    case NetworkEventType.DisconnectEvent: HandleDisconnection(outConnectionId, error); break;
+                    case NetworkEventType.DisconnectEvent:
+                        HandleDisconnection(outConnectionId, error);
+                        //cancel process, because our socket was destroyed.
+                        if (!HasSocket())
+                        {
+                            return;
+                        }
+                        break;
                     case NetworkEventType.DataEvent:
                         if (PING_SIMULATION)
                             SimulateDataReceived(outConnectionId, outChannelId, ref buffer, receiveSize, error);
@@ -78,21 +91,36 @@ namespace GameWorkstore.NetworkLibrary
                     case NetworkEventType.Nothing: break;
                     default: Log("Unknown network message type received: " + evnt, DebugLevel.INFO); break;
                 }
-                if (!HasSocket()) return;
             }
-            if (!HasSocket()) return;
 
+            // deliver simulated packets
             if (PING_SIMULATION)
             {
                 RunSimulation();
             }
+
+            // deliver stay alive packets
             if (SimulationTime() > _lastStayAliveSolver + _queueStayAliveTime)
             {
+                foreach (var preconn in _preconnections)
+                {
+                    preconn.Value.SendByChannel(_stayAlivePacket, CHANNEL_UNRELIABLE);
+                }
                 foreach (var conn in _connections)
                 {
-                    conn.Value.SendByChannel(_stayAlivePacket, CHANNEL_RELIABLE_ORDERED);
+                    conn.Value.SendByChannel(_stayAlivePacket, CHANNEL_UNRELIABLE);
                 }
                 _lastStayAliveSolver = SimulationTime();
+            }
+
+            // flush all channels
+            foreach (var preconn in _preconnections)
+            {
+                preconn.Value.FlushChannels();
+            }
+            foreach (var conn in _connections)
+            {
+                conn.Value.FlushChannels();
             }
 #if UNITY_EDITOR
             NetworkDetailStats.NewProfilerTick(Time.time);
@@ -152,9 +180,9 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        protected virtual HostTopology GetHostTopology()
+        protected HostTopology GetHostTopology()
         {
-            ConnectionConfig config = new ConnectionConfig
+            var config = new ConnectionConfig
             {
                 //AllCostTimeout = 17,
                 MaxCombinedReliableMessageCount = 4,
@@ -165,6 +193,7 @@ namespace GameWorkstore.NetworkLibrary
             CHANNEL_RELIABLE = config.AddChannel(QosType.Reliable);
             CHANNEL_RELIABLE_ORDERED = config.AddChannel(QosType.ReliableSequenced);
             CHANNEL_ALLCOSTDELIVERY = config.AddChannel(QosType.AllCostDelivery);
+            CHANNEL_UNRELIABLE = config.AddChannel(QosType.Unreliable);
             if (CHANNEL_STATECHANNEL == null)
             {
                 CHANNEL_STATECHANNEL = new byte[CHANNEL_STATE_COUNT];
@@ -174,7 +203,7 @@ namespace GameWorkstore.NetworkLibrary
                 CHANNEL_STATECHANNEL[i] = config.AddChannel(QosType.StateUpdate);
             }
 
-            return new HostTopology(config, MATCHSIZE);
+            return new HostTopology(config, MATCHSIZE + PRECONNECTIONMAX);
         }
 
         internal static NetworkInstanceId GetUniqueId()
@@ -185,37 +214,67 @@ namespace GameWorkstore.NetworkLibrary
 
         internal int GetRTT(int connectionId)
         {
-            byte err;
-            int rtt = NetworkTransport.GetCurrentRTT(SOCKETID, connectionId, out err);
+            int rtt = NetworkTransport.GetCurrentRTT(SOCKETID, connectionId, out _);
             return PING_SIMULATION ? (PING_SIMULATED > rtt ? PING_SIMULATED : rtt) : rtt;
         }
 
-        protected bool IsOk(byte error)
+        protected static bool IsOk(byte error)
         {
             return (NetworkError)error == NetworkError.Ok;
         }
 
-        protected void AddConnectionToPool(NetConnection conn)
+        protected NetConnection CreatePreconnection(int connectionId)
         {
-            conn.SetHandlers(_handlers);
-            _connections.Add(conn.connectionId, conn);
+            var conn = new NetConnection();
+            conn.Initialize(SOCKETID, connectionId, GetHostTopology());
+            conn.InitializeHandlers(_prehandlers);
+            _preconnections.Add(connectionId, conn);
+            return conn;
         }
 
-        protected void RemoveConnectionFromPool(int connectionId)
+        protected bool RemovePreconnection(int connectionId)
         {
-            _connections.Remove(connectionId);
+            return _preconnections.Remove(connectionId);
         }
 
-        public void AddHandler<T>(NetworkMessageDelegate function) where T : NetworkPacketBase, new()
+        protected NetConnection CreateConnection(int connectionId)
+        {
+            var conn = new NetConnection();
+            conn.Initialize(SOCKETID, connectionId, GetHostTopology());
+            conn.InitializeHandlers(_handlers);
+            _connections.Add(connectionId, conn);
+            return conn;
+        }
+
+        protected bool RemoveConnection(int connectionId)
+        {
+            return _connections.Remove(connectionId);
+        }
+
+        public void AddHandler<T>(NetworkHandler function, bool prehandler = false) where T : NetworkPacketBase, new()
         {
             var packet = new T();
-            _handlers.RegisterHandler(packet.Code, function);
+            if (prehandler)
+            {
+                _prehandlers.RegisterHandler(packet.Code, function);
+            }
+            else
+            {
+                _handlers.RegisterHandler(packet.Code, function);
+            }
         }
 
-        public void RemoveHandler<T>() where T : NetworkPacketBase, new()
+        public void RemoveHandler<T>(bool prehandler = false) where T : NetworkPacketBase, new()
         {
             var packet = new T();
-            _handlers.UnregisterHandler(packet.Code);
+            if (prehandler)
+            {
+                _prehandlers.UnregisterHandler(packet.Code);
+            }
+            else
+            {
+                _handlers.UnregisterHandler(packet.Code);
+            }
         }
 
         protected abstract void HandleConnection(int connectionId, byte error);
@@ -246,8 +305,7 @@ namespace GameWorkstore.NetworkLibrary
                 return;
             }
             float rt = SimulationTime();
-            byte err;
-            int rtt = NetworkTransport.GetCurrentRTT(SOCKETID, outConnectionId, out err);
+            int rtt = NetworkTransport.GetCurrentRTT(SOCKETID, outConnectionId, out _);
             DataReceived rc = new DataReceived() { connectionId = outConnectionId, channelId = outChannelId, error = error, timestamp = rt + (PING_SIMULATED - rtt) / 1000f, receivedSize = outReceiveSize, buffer = ArrayPool<byte>.GetBuffer(1024) };
             if (receiveSize >= 1024)
             {

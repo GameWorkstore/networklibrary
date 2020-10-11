@@ -19,11 +19,9 @@ namespace GameWorkstore.NetworkLibrary
         public void Invoke(NetMessage evt)
         {
             TMsg msg = evt.ReadMessage<TMsg>();
-            msg.conn = evt.conn;
-
             if (Debug)
             {
-                DebugMessege.Log("MSG:" + evt.msgType, DebugLevel.INFO);
+                DebugMessege.Log("MSG:" + evt.type, DebugLevel.INFO);
             }
 
             if (Action != null)

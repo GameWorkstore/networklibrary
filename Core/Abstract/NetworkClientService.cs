@@ -8,7 +8,6 @@ namespace GameWorkstore.NetworkLibrary
 {
     public abstract class NetworkClientService : BaseConnectionService
     {
-        private int CONNECTIONID;
         private string SERVERIP = "127.0.0.1";
         protected NetConnection CONN;
         private Action<bool> OnConnect;
@@ -25,6 +24,7 @@ namespace GameWorkstore.NetworkLibrary
             _objects = new NetworkClientObjectController();
             _objects.OnObjectCreated.Register(HandleObjectCreated);
             _objects.OnObjectDestroyed.Register(HandleObjectDestroyed);
+            AddHandler<AuthenticationRequestPacket>(HandleAuthenticationRequest);
             AddHandler<ObjectSyncNetworkTimePacket>(SyncNetworkTime);
             AddHandler<ObjectSyncPacket>(SyncAllObjects);
             AddHandler<ObjectSyncDeltaCreatePacket>(SyncDeltaCreate);
@@ -63,18 +63,16 @@ namespace GameWorkstore.NetworkLibrary
             {
                 Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
 
-                byte error;
-                CONNECTIONID = NetworkTransport.Connect(SOCKETID, SERVERIP, PORT, 0, out error);
-
+                NetworkTransport.Connect(SOCKETID, SERVERIP, PORT, 0, out byte error);
                 STATE = NetworkClientState.CONNECTING;
 
                 switch ((NetworkError)error)
                 {
                     case NetworkError.Ok:
-                        Log("Start Connection with Server from Socket: " + SOCKETID, DebugLevel.INFO);
+                        Log("Start Connection from Socket: " + SOCKETID, DebugLevel.INFO);
                         break;
                     default:
-                        Log("Start Connection with Server from Socket failed: " + SOCKETID + "Error:" + (UnityEngine.Networking.NetworkError)error, DebugLevel.ERROR);
+                        Log("Start Connection from Socket failed: " + SOCKETID + "Error:" + (NetworkError)error, DebugLevel.ERROR);
                         OnConnect?.Invoke(false);
                         OnConnectError.Invoke();
                         break;
@@ -102,7 +100,7 @@ namespace GameWorkstore.NetworkLibrary
             if (CONN != null)
             {
                 CONN.Disconnect();
-                RemoveConnectionFromPool(CONN.connectionId);
+                RemoveConnection(CONN.connectionId);
                 CONN = null;
             }
 
@@ -147,16 +145,14 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void HandleConnection(int connectionId, byte error)
         {
-            Log("Connected to Server", DebugLevel.INFO);
+            Log("Connection started", DebugLevel.INFO);
             STATE = NetworkClientState.CONNECTED;
-            CONN = new NetConnection();
-            CONN.Initialize(SERVERIP, SOCKETID, CONNECTIONID, GetHostTopology());
-            AddConnectionToPool(CONN);
+            CONN = CreateConnection(connectionId);
         }
 
         protected override void HandleDisconnection(int connectionId, byte error)
         {
-            Log("Received disconnection from Server", DebugLevel.INFO);
+            Log("Disconnected", DebugLevel.INFO);
             Disconnect();
         }
 
@@ -181,6 +177,21 @@ namespace GameWorkstore.NetworkLibrary
         public void RemoveTriggerHandler(NetworkHash128 hash)
         {
             _objects.RemoveHandler(hash);
+        }
+
+        /// <summary>
+        /// When server request, send it an AuthenticationResponsePacket including the payload required to allow connection.
+        /// </summary>
+        /// <param name="packet"></param>
+        protected virtual void HandleAuthenticationRequest(NetMessage packet)
+        {
+            Log("Authentication request from server.", DebugLevel.INFO);
+            var response = new AuthenticationResponsePacket
+            {
+                //Payload = "default"
+                Payload = "nope"
+            };
+            Send(response, CHANNEL_RELIABLE);
         }
 
         private void SyncNetworkTime(NetMessage evt)
@@ -213,6 +224,7 @@ namespace GameWorkstore.NetworkLibrary
             if (!packet.IsLast) return;
 
             //client is connected!
+            Log("Connected:[ID:" + CONN.connectionId + "]", DebugLevel.INFO);
             OnConnected.Invoke(CONN);
             OnConnect?.Invoke(true);
         }

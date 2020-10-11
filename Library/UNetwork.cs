@@ -1,5 +1,3 @@
-using UnityEngine.Networking;
-
 namespace GameWorkstore.NetworkLibrary
 {
     // Handles network messages on client and server
@@ -12,7 +10,7 @@ namespace GameWorkstore.NetworkLibrary
     //public delegate void UnSpawnDelegate(GameObject spawned);
 
     // built-in system network messages
-    public class MsgType
+    public static class UnityTransportTypes
     {
         // internal system messages - cannot be replaced by user code
         public const short ObjectDestroy = 1;
@@ -62,7 +60,7 @@ namespace GameWorkstore.NetworkLibrary
         //NOTE: update msgLabels below if this is changed.
         public const short Highest = 47;
 
-        static internal string[] msgLabels =
+        internal static string[] labels =
         {
             "none",
             "ObjectDestroy",
@@ -113,13 +111,13 @@ namespace GameWorkstore.NetworkLibrary
             "LobbyReturnToLobby", // 46
         };
 
-        static public string MsgTypeToString(short value)
+        public static string TypeToString(short value)
         {
             if (value < 0 || value > Highest)
             {
                 return string.Empty;
             }
-            string result =  msgLabels[value];
+            string result =  labels[value];
             if (string.IsNullOrEmpty(result))
             {
                 result = "[" + value + "]";
@@ -130,9 +128,7 @@ namespace GameWorkstore.NetworkLibrary
 
     public class NetMessage
     {
-        public const int MaxMessageSize = (64 * 1024) - 1;
-
-        public short msgType;
+        public short type;
         public NetConnection conn;
         public NetReader reader;
         public int channelId;
@@ -150,26 +146,13 @@ namespace GameWorkstore.NetworkLibrary
 
         public TMsg ReadMessage<TMsg>() where TMsg : NetworkPacketBase, new()
         {
-            var msg = new TMsg();
+            var msg = new TMsg
+            {
+                conn = conn
+            };
             msg.Deserialize(reader);
             return msg;
         }
-
-        public void ReadMessage<TMsg>(TMsg msg) where TMsg : NetworkPacketBase
-        {
-            msg.Deserialize(reader);
-        }
-    }
-
-    public enum Version
-    {
-        Current = 1
-    }
-
-    public class Channels
-    {
-        public const int DefaultReliable = 0;
-        public const int DefaultUnreliable = 1;
     }
 
     public enum ChannelOption

@@ -59,7 +59,7 @@ namespace GameWorkstore.NetworkLibrary
                     // this packet will be buffered by the containing ChannelBuffer, so this is not an error
 
 #if UNITY_EDITOR
-                    NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, MsgType.HLAPIResend, "msg", 1);
+                    NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIResend, "msg", 1);
 #endif
                     return false;
                 }

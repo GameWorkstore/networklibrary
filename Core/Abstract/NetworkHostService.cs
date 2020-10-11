@@ -174,7 +174,7 @@ namespace GameWorkstore.NetworkLibrary
             }
             else
             {
-                RefuseConnection(connectionId);
+                RefusePreconnection(connectionId);
             }
         }
 
@@ -188,15 +188,15 @@ namespace GameWorkstore.NetworkLibrary
             //Accepts all authenticated until fill up:
             if(_connections.Count < MATCHSIZE && authentication.Payload.Equals("default"))
             {
-                AuthenticateConnection(authentication.conn.ConnectionId);
+                AuthenticatePreconnection(authentication.conn.ConnectionId);
             }
             else
             {
-                RefuseConnection(authentication.conn.ConnectionId);
+                RefusePreconnection(authentication.conn.ConnectionId);
             }
         }
 
-        private void AuthenticateConnection(int connectionId)
+        protected void AuthenticatePreconnection(int connectionId)
         {
             RemovePreconnection(connectionId);
             Log("Authenticated:[ID:" + connectionId + "]", DebugLevel.INFO);
@@ -204,7 +204,7 @@ namespace GameWorkstore.NetworkLibrary
             ServiceProvider.GetService<EventService>().StartCoroutine(StartClient(conn));
         }
 
-        private void RefuseConnection(int connectionId)
+        protected void RefusePreconnection(int connectionId)
         {
             Log("Refused:[ID:" + connectionId + "]", DebugLevel.INFO);
             RemovePreconnection(connectionId);
@@ -359,7 +359,7 @@ namespace GameWorkstore.NetworkLibrary
             var preconnids = _preconnections.Where(Timeout).Select(ConnectionId).ToArray();
             foreach (var preconn in preconnids)
             {
-                RefuseConnection(preconn);
+                RefusePreconnection(preconn);
             }
         }
 
@@ -368,7 +368,7 @@ namespace GameWorkstore.NetworkLibrary
             var preconnids = _preconnections.Select(ConnectionId).ToArray();
             foreach (var preconn in preconnids)
             {
-                RefuseConnection(preconn);
+                RefusePreconnection(preconn);
             }
             var connids = _connections.Select(ConnectionId).ToArray();
             foreach (var conn in connids)

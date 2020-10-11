@@ -226,7 +226,7 @@ namespace GameWorkstore.NetworkLibrary
         protected NetConnection CreatePreconnection(int connectionId)
         {
             var conn = new NetConnection();
-            conn.Initialize(SOCKETID, connectionId, GetHostTopology());
+            conn.Initialize(SOCKETID, connectionId, GetHostTopology(), SimulationTime());
             conn.InitializeHandlers(_prehandlers);
             _preconnections.Add(connectionId, conn);
             return conn;
@@ -240,7 +240,7 @@ namespace GameWorkstore.NetworkLibrary
         protected NetConnection CreateConnection(int connectionId)
         {
             var conn = new NetConnection();
-            conn.Initialize(SOCKETID, connectionId, GetHostTopology());
+            conn.Initialize(SOCKETID, connectionId, GetHostTopology(), SimulationTime());
             conn.InitializeHandlers(_handlers);
             _connections.Add(connectionId, conn);
             return conn;

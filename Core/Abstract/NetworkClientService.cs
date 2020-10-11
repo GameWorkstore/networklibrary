@@ -100,7 +100,7 @@ namespace GameWorkstore.NetworkLibrary
             if (CONN != null)
             {
                 CONN.Disconnect();
-                RemoveConnection(CONN.connectionId);
+                RemoveConnection(CONN.ConnectionId);
                 CONN = null;
             }
 
@@ -140,7 +140,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public int GetRTT()
         {
-            return GetRTT(CONN.connectionId);
+            return GetRTT(CONN.ConnectionId);
         }
 
         protected override void HandleConnection(int connectionId, byte error)
@@ -224,7 +224,7 @@ namespace GameWorkstore.NetworkLibrary
             if (!packet.IsLast) return;
 
             //client is connected!
-            Log("Connected:[ID:" + CONN.connectionId + "]", DebugLevel.INFO);
+            Log("Connected:[ID:" + CONN.ConnectionId + "]", DebugLevel.INFO);
             OnConnected.Invoke(CONN);
             OnConnect?.Invoke(true);
         }

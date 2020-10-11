@@ -20,13 +20,11 @@ namespace GameWorkstore.NetworkLibrary
         private readonly NetMessage _messageInfo = new NetMessage();
         private const int _maxPacketLogSize = 150;
 
-        public int hostId = -1;
-        public int connectionId = -1;
-        public bool isReady;
-        public float LastReceivedTime;
+        public int HostId = -1;
+        public int ConnectionId = -1;
+        public float InitializedTime = 0;
+        public float LastReceivedTime = 0;
         public bool DebugPackets = false;
-        public bool IsConnected { get { return hostId != -1; } }
-
 
         public class PacketStat
         {
@@ -46,11 +44,12 @@ namespace GameWorkstore.NetworkLibrary
         private const int _maxPacketStats = 255; //the same as maximum message types
 #endif
 
-        public virtual void Initialize(int hostId, int connectionId, HostTopology hostTopology)
+        public virtual void Initialize(int hostId, int connectionId, HostTopology hostTopology, float initializedTime)
         {
             _writer = new NetWriter();
-            this.hostId = hostId;
-            this.connectionId = connectionId;
+            HostId = hostId;
+            ConnectionId = connectionId;
+            InitializedTime = initializedTime;
 
             int numChannels = hostTopology.DefaultConfig.ChannelCount;
             int packetSize = hostTopology.DefaultConfig.PacketSize;
@@ -123,12 +122,8 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Disconnect()
         {
-            isReady = false;
-            if (hostId == -1)
-            {
-                return;
-            }
-            NetworkTransport.Disconnect(hostId, connectionId, out byte error);
+            if (HostId < 0) return;
+            NetworkTransport.Disconnect(HostId, ConnectionId, out _);
         }
 
         public void InitializeHandlers(NetworkHandlers handlers)
@@ -200,7 +195,7 @@ namespace GameWorkstore.NetworkLibrary
                 builder.AppendFormat("{0:X2}", bytes[i]);
                 if (i > _maxPacketLogSize) break;
             }
-            DebugMessege.Log("ConnectionSend con:" + connectionId + " bytes:" + size + " code:" + code + " " + builder, DebugLevel.INFO);
+            DebugMessege.Log("ConnectionSend con:" + ConnectionId + " bytes:" + size + " code:" + code + " " + builder, DebugLevel.INFO);
         }
 
         bool CheckChannel(int channelId)
@@ -273,7 +268,7 @@ namespace GameWorkstore.NetworkLibrary
                         msg.AppendFormat("{0:X2}", msgBuffer[i]);
                         if (i > _maxPacketLogSize) break;
                     }
-                    DebugMessege.Log("ConnectionRecv con:" + connectionId + " bytes:" + sz + " msgId:" + code + " " + msg, DebugLevel.INFO);
+                    DebugMessege.Log("ConnectionRecv con:" + ConnectionId + " bytes:" + sz + " msgId:" + code + " " + msg, DebugLevel.INFO);
                 }
 
                 NetworkHandler msgDelegate = null;
@@ -331,7 +326,7 @@ namespace GameWorkstore.NetworkLibrary
                 }
                 else
                 {
-                    DebugMessege.Log("Unknown message ID " + code + " connId:" + connectionId, DebugLevel.ERROR);
+                    DebugMessege.Log("Unknown message ID " + code + " connId:" + ConnectionId, DebugLevel.ERROR);
                     break;
                 }
             }
@@ -367,7 +362,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public override string ToString()
         {
-            return string.Format("hostId: {0} connectionId: {1} isReady: {2} channel count: {3}", hostId, connectionId, isReady, (_channels != null ? _channels.Length : 0));
+            return string.Format("hostId: {0} connectionId: {1} channel count: {2}", HostId, ConnectionId, (_channels != null ? _channels.Length : 0));
         }
 
         public virtual void TransportReceive(byte[] bytes, int numBytes, int channelId)
@@ -380,7 +375,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public virtual bool TransportSend(byte[] bytes, int numBytes, int channelId, out byte error)
         {
-            return NetworkTransport.Send(hostId, connectionId, channelId, bytes, numBytes, out error);
+            return NetworkTransport.Send(HostId, ConnectionId, channelId, bytes, numBytes, out error);
         }
     }
 }

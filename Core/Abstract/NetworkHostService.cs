@@ -14,7 +14,7 @@ namespace GameWorkstore.NetworkLibrary
 
         private const float _queueSolverTime = 1 / 18f; //Amount of QueueMesseges per Second
         private float _lastQueueSolver = 0;
-        private static List<QPacketClass> _classes;
+        private List<QPacketClass> _classes;
         private static readonly AuthenticationRequestPacket _authrequest = new AuthenticationRequestPacket();
 
         protected bool USENETWORKOBJECTCONTROLLER = true;
@@ -81,7 +81,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void UpdateConnection()
         {
-            //Queues
+            // queues
             if (SimulationTime() > _lastQueueSolver + _queueSolverTime)
             {
                 foreach (var q in _classes)
@@ -98,6 +98,9 @@ namespace GameWorkstore.NetworkLibrary
                 }
                 _lastQueueSolver = SimulationTime();
             }
+            // preconnections has 60 seconds to communicate, or drop
+            DisconnectTimeoutPreconnections();
+            // default
             base.UpdateConnection();
         }
 
@@ -185,11 +188,11 @@ namespace GameWorkstore.NetworkLibrary
             //Accepts all authenticated until fill up:
             if(_connections.Count < MATCHSIZE && authentication.Payload.Equals("default"))
             {
-                AuthenticateConnection(authentication.conn.connectionId);
+                AuthenticateConnection(authentication.conn.ConnectionId);
             }
             else
             {
-                RefuseConnection(authentication.conn.connectionId);
+                RefuseConnection(authentication.conn.ConnectionId);
             }
         }
 
@@ -210,7 +213,7 @@ namespace GameWorkstore.NetworkLibrary
 
         private IEnumerator StartClient(NetConnection conn)
         {
-            var packets = _objects.GetSyncPacket(conn.connectionId);
+            var packets = _objects.GetSyncPacket(conn.ConnectionId);
             if (packets.Length > 0)
             {
                 packets[packets.Length - 1].IsLast = true;
@@ -222,7 +225,7 @@ namespace GameWorkstore.NetworkLibrary
 
             for (int i = 0; i < 3; i++)
             {
-                if (!Send(conn.connectionId, new ObjectSyncNetworkTimePacket() { NetworkTime = GetHostNetworkTime() }, CHANNEL_RELIABLE))
+                if (!Send(conn.ConnectionId, new ObjectSyncNetworkTimePacket() { NetworkTime = GetHostNetworkTime() }, CHANNEL_RELIABLE))
                 {
                     Log("Failed to Send SyncNetworkPacket", DebugLevel.ERROR);
                 }
@@ -232,14 +235,14 @@ namespace GameWorkstore.NetworkLibrary
 
             foreach (var packet in packets)
             {
-                if (!Send(conn.connectionId, packet, CHANNEL_RELIABLE_ORDERED))
+                if (!Send(conn.ConnectionId, packet, CHANNEL_RELIABLE_ORDERED))
                 {
                     Log("Failed to Send SyncPacket", DebugLevel.ERROR);
                 }
                 yield return null;
             }
 
-            Log("Connected:[ID:" + conn.connectionId + "]", DebugLevel.INFO);
+            Log("Connected:[ID:" + conn.ConnectionId + "]", DebugLevel.INFO);
             OnSocketConnection.Invoke(conn);
         }
 
@@ -351,14 +354,23 @@ namespace GameWorkstore.NetworkLibrary
             return NetworkTransport.Disconnect(SOCKETID, connectionId, out _);
         }
 
-        public void DisconnectAllPlayers()
+        private void DisconnectTimeoutPreconnections()
         {
-            var preconnids = _preconnections.Where(t => t.Value != null).Select(t => t.Value.connectionId).ToArray();
+            var preconnids = _preconnections.Where(Timeout).Select(ConnectionId).ToArray();
             foreach (var preconn in preconnids)
             {
                 RefuseConnection(preconn);
             }
-            var connids = _connections.Where(t => t.Value != null).Select(t => t.Value.connectionId).ToArray();
+        }
+
+        public void DisconnectAllPlayers()
+        {
+            var preconnids = _preconnections.Select(ConnectionId).ToArray();
+            foreach (var preconn in preconnids)
+            {
+                RefuseConnection(preconn);
+            }
+            var connids = _connections.Select(ConnectionId).ToArray();
             foreach (var conn in connids)
             {
                 DisconnectPlayer(conn);
@@ -428,7 +440,7 @@ namespace GameWorkstore.NetworkLibrary
         {
             foreach (var conn in _connections.Values)
             {
-                if (conn.connectionId == behaviour.connectionId)
+                if (conn.ConnectionId == behaviour.connectionId)
                 {
                     return conn;
                 }
@@ -442,6 +454,26 @@ namespace GameWorkstore.NetworkLibrary
         }
 
         public int GetPort() { return PORT; }
+
+        /// <summary>
+        /// Helper function for LINQ
+        /// </summary>
+        /// <param name="conn"></param>
+        /// <returns></returns>
+        private static bool Timeout(KeyValuePair<int, NetConnection> conn)
+        {
+            return SimulationTime() - conn.Value.InitializedTime > 60;
+        }
+
+        /// <summary>
+        /// Helper function for LINQ
+        /// </summary>
+        /// <param name="conn"></param>
+        /// <returns></returns>
+        private static int ConnectionId(KeyValuePair<int, NetConnection> conn)
+        {
+            return conn.Key;
+        }
 
         #region EVENTS
         public Signal<NetConnection> OnSocketConnection = new Signal<NetConnection>();

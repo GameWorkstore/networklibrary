@@ -1,41 +1,93 @@
+using GameWorkstore.Patterns;
+using System;
 using System.Collections.Generic;
 
 namespace GameWorkstore.NetworkLibrary
 {
-    public delegate void NetworkHandler(NetMessage packet);
+    public abstract class NetworkHandlerBase
+    {
+        public abstract void Invoke(NetMessage packet);
+    }
+
+    public class NetworkHandler<T> : NetworkHandlerBase where T : NetworkPacketBase, new()
+    {
+        public Action<T> Function;
+
+        public override void Invoke(NetMessage packet)
+        {
+            var it = packet.ReadMessage<T>();
+            Function(it);
+        }
+
+        public override bool Equals(object other)
+        {
+            return other is NetworkHandler<T> handler && Function == handler.Function;
+        }
+
+        public override int GetHashCode()
+        {
+            return Function.GetHashCode();
+        }
+    }
 
     public class NetworkHandlers
     {
-        private readonly Dictionary<short, NetworkHandler> _handlers = new Dictionary<short, NetworkHandler>();
+        private readonly Dictionary<short, HighSpeedArray<NetworkHandlerBase>> _handlers = new Dictionary<short, HighSpeedArray<NetworkHandlerBase>>();
 
-        public void RegisterHandler(short code, NetworkHandler handler)
+        public void RegisterHandler<T>(short code, Action<T> function) where T : NetworkPacketBase, new()
         {
-            if (handler == null)
+            if (function == null)
             {
-                Log("ID: " + code + " handler is null!", DebugLevel.ERROR);
+                Log("PacketCode[" + code + "] Error: function is null!", DebugLevel.ERROR);
                 return;
             }
-            
-            if (_handlers.ContainsKey(code))
+
+            NetworkHandler<T> handler = new NetworkHandler<T>
             {
-                Log("Replace ID: " + code + " Handler: " + handler.Method.Name, DebugLevel.INFO);
-                _handlers.Remove(code);
+                Function = function
+            };
+
+            if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
+            {
+                if (array.Contains(handler))
+                {
+                    Log("PacketCode[" + code + "] Error: function already added!", DebugLevel.ERROR);
+                    return;
+                }
+                array.Add(handler);
             }
             else
             {
-                Log("Added ID: " + code + " Handler: " + handler.Method.Name, DebugLevel.INFO);
+                HighSpeedArray<NetworkHandlerBase> narray = new HighSpeedArray<NetworkHandlerBase>(4);
+                narray.Add(handler);
+                _handlers.Add(code, narray);
             }
-            _handlers.Add(code, handler);
         }
 
-        public void UnregisterHandler(short code)
+        public bool UnregisterHandler<T>(short code, Action<T> function) where T : NetworkPacketBase, new()
         {
-            _handlers.Remove(code);
+            if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
+            {
+                NetworkHandler<T> handler = new NetworkHandler<T>
+                {
+                    Function = function
+                };
+                return array.Remove(handler);
+            }
+            return false;
         }
 
-        internal Dictionary<short, NetworkHandler> GetHandlers()
+        internal bool Invoke(short code, NetMessage message)
         {
-            return _handlers;
+            if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
+            {
+                for(int i = 0; i < array.Count; i++)
+                {
+                    array[i].Invoke(message);
+                }
+                return true;
+            }
+            return false;
         }
 
         internal void Log(string msg, DebugLevel level)

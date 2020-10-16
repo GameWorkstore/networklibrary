@@ -35,6 +35,11 @@ namespace GameWorkstore.NetworkLibrary
         {
             _objects.OnObjectCreated.Unregister(HandleObjectCreated);
             _objects.OnObjectDestroyed.Unregister(HandleObjectDestroyed);
+            RemoveHandler<AuthenticationRequestPacket>(HandleAuthenticationRequest);
+            RemoveHandler<ObjectSyncNetworkTimePacket>(SyncNetworkTime);
+            RemoveHandler<ObjectSyncPacket>(SyncAllObjects);
+            RemoveHandler<ObjectSyncDeltaCreatePacket>(SyncDeltaCreate);
+            RemoveHandler<ObjectSyncDeltaDestroyPacket>(SyncDeltaDestroy);
             if (STATE == NetworkClientState.CONNECTING || STATE == NetworkClientState.CONNECTED)
             {
                 Disconnect();
@@ -183,20 +188,19 @@ namespace GameWorkstore.NetworkLibrary
         /// When server request, send it an AuthenticationResponsePacket including the payload required to allow connection.
         /// </summary>
         /// <param name="packet"></param>
-        protected virtual void HandleAuthenticationRequest(NetMessage packet)
+        protected virtual void HandleAuthenticationRequest(AuthenticationRequestPacket packet)
         {
             Log("Authentication request from server.", DebugLevel.INFO);
             var response = new AuthenticationResponsePacket
             {
-                //Payload = "default"
-                Payload = "nope"
+                Payload = "default"
             };
             Send(response, CHANNEL_RELIABLE);
         }
 
-        private void SyncNetworkTime(NetMessage evt)
+        private void SyncNetworkTime(ObjectSyncNetworkTimePacket time)
         {
-            SetClientNetworkDifference(evt.ReadMessage<ObjectSyncNetworkTimePacket>().NetworkTime);
+            SetClientNetworkDifference(time.NetworkTime);
         }
 
         public float GetClientNetworkTime()
@@ -215,9 +219,8 @@ namespace GameWorkstore.NetworkLibrary
             networkDifference = _diffs.Sum() / _diffs.Count;
         }
 
-        private void SyncAllObjects(NetMessage evt)
+        private void SyncAllObjects(ObjectSyncPacket packet)
         {
-            ObjectSyncPacket packet = evt.ReadMessage<ObjectSyncPacket>();
             _objects.SetSyncPacket(packet, CONN);
 
             //test if last packet
@@ -229,15 +232,13 @@ namespace GameWorkstore.NetworkLibrary
             OnConnect?.Invoke(true);
         }
 
-        private void SyncDeltaDestroy(NetMessage evt)
+        private void SyncDeltaDestroy(ObjectSyncDeltaDestroyPacket packet)
         {
-            ObjectSyncDeltaDestroyPacket packet = evt.ReadMessage<ObjectSyncDeltaDestroyPacket>();
             _objects.SetSyncPacket(packet);
         }
 
-        private void SyncDeltaCreate(NetMessage evt)
+        private void SyncDeltaCreate(ObjectSyncDeltaCreatePacket packet)
         {
-            ObjectSyncDeltaCreatePacket packet = evt.ReadMessage<ObjectSyncDeltaCreatePacket>();
             _objects.SetSyncPacket(packet, CONN);
         }
 

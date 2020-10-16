@@ -16,7 +16,7 @@ namespace GameWorkstore.NetworkLibrary
 
         private readonly NetMessage _netMessage = new NetMessage();
         private NetWriter _writer = new NetWriter();
-        private Dictionary<short, NetworkHandler> _networkHandlersDict;
+        private NetworkHandlers _networkHandlers;
         private readonly NetMessage _messageInfo = new NetMessage();
         private const int _maxPacketLogSize = 150;
 
@@ -44,9 +44,10 @@ namespace GameWorkstore.NetworkLibrary
         private const int _maxPacketStats = 255; //the same as maximum message types
 #endif
 
-        public virtual void Initialize(int hostId, int connectionId, HostTopology hostTopology, float initializedTime)
+        public NetConnection(int hostId, int connectionId, HostTopology hostTopology, float initializedTime, NetworkHandlers networkHandlers)
         {
             _writer = new NetWriter();
+            _networkHandlers = networkHandlers;
             HostId = hostId;
             ConnectionId = connectionId;
             InitializedTime = initializedTime;
@@ -128,7 +129,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void InitializeHandlers(NetworkHandlers handlers)
         {
-            _networkHandlersDict = handlers.GetHandlers();
+            _networkHandlers = handlers;
         }
 
         public void FlushChannels()
@@ -257,34 +258,28 @@ namespace GameWorkstore.NetworkLibrary
                 short code = reader.ReadShort();
 
                 // create a reader just for this message
-                byte[] msgBuffer = reader.ReadBytes(sz);
-                NetReader msgReader = new NetReader(msgBuffer);
+                byte[] buffer = reader.ReadBytes(sz);
+                NetReader packetReader = new NetReader(buffer);
 
                 if (DebugPackets)
                 {
                     StringBuilder msg = new StringBuilder();
                     for (int i = 0; i < sz; i++)
                     {
-                        msg.AppendFormat("{0:X2}", msgBuffer[i]);
+                        msg.AppendFormat("{0:X2}", buffer[i]);
                         if (i > _maxPacketLogSize) break;
                     }
                     DebugMessege.Log("ConnectionRecv con:" + ConnectionId + " bytes:" + sz + " msgId:" + code + " " + msg, DebugLevel.INFO);
                 }
 
-                NetworkHandler msgDelegate = null;
-                if (_networkHandlersDict.ContainsKey(code))
-                {
-                    msgDelegate = _networkHandlersDict[code];
-                }
-                if (msgDelegate != null)
-                {
-                    _netMessage.type = code;
-                    _netMessage.reader = msgReader;
-                    _netMessage.conn = this;
-                    _netMessage.channelId = channelId;
-                    msgDelegate(_netMessage);
-                    LastReceivedTime = Time.realtimeSinceStartup;
+                _netMessage.type = code;
+                _netMessage.reader = packetReader;
+                _netMessage.conn = this;
+                _netMessage.channelId = channelId;
 
+                if (_networkHandlers.Invoke(code, _netMessage))
+                {
+                    LastReceivedTime = Time.realtimeSinceStartup;
 #if UNITY_EDITOR
                     NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, UnityTransportTypes.LLAPIMsg, "msg", 1);
 

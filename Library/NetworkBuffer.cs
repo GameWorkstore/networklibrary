@@ -7,104 +7,103 @@ namespace GameWorkstore.NetworkLibrary
     // this is used instead of MemoryStream and BinaryReader/BinaryWriter to avoid allocations.
     class NetBuffer
     {
-        byte[] m_Buffer;
-        uint m_Pos;
+        byte[] _buffer;
         const int k_InitialSize = 64;
         const float k_GrowthFactor = 1.5f;
         const int k_BufferSizeWarning = 1024 * 1024 * 128;
 
-        public uint Position { get { return m_Pos; } }
+        public uint Position { get; private set; }
 
         public NetBuffer()
         {
-            m_Buffer = new byte[k_InitialSize];
+            _buffer = new byte[k_InitialSize];
         }
 
         // this does NOT copy the buffer
         public NetBuffer(byte[] buffer)
         {
-            m_Buffer = buffer;
+            _buffer = buffer;
         }
 
         public byte ReadByte()
         {
-            if (m_Pos >= m_Buffer.Length)
+            if (Position >= _buffer.Length)
             {
                 throw new IndexOutOfRangeException("NetworkReader:ReadByte out of range:" + ToString());
             }
 
-            return m_Buffer[m_Pos++];
+            return _buffer[Position++];
         }
 
         public void ReadBytes(byte[] buffer, uint count)
         {
-            if (m_Pos + count > m_Buffer.Length)
+            if (Position + count > _buffer.Length)
             {
                 throw new IndexOutOfRangeException("NetworkReader:ReadBytes out of range: (" + count + ") " + ToString());
             }
 
             for (ushort i = 0; i < count; i++)
             {
-                buffer[i] = m_Buffer[m_Pos + i];
+                buffer[i] = _buffer[Position + i];
             }
-            m_Pos += count;
+            Position += count;
         }
 
         public void ReadChars(char[] buffer, uint count)
         {
-            if (m_Pos + count > m_Buffer.Length)
+            if (Position + count > _buffer.Length)
             {
                 throw new IndexOutOfRangeException("NetworkReader:ReadChars out of range: (" + count + ") " + ToString());
             }
             for (ushort i = 0; i < count; i++)
             {
-                buffer[i] = (char)m_Buffer[m_Pos + i];
+                buffer[i] = (char)_buffer[Position + i];
             }
-            m_Pos += count;
+            Position += count;
         }
 
         internal ArraySegment<byte> AsArraySegment()
         {
-            return new ArraySegment<byte>(m_Buffer, 0, (int)m_Pos);
+            return new ArraySegment<byte>(_buffer, 0, (int)Position);
         }
 
         public void WriteByte(byte value)
         {
             WriteCheckForSpace(1);
-            m_Buffer[m_Pos] = value;
-            m_Pos += 1;
+            _buffer[Position] = value;
+            Position += 1;
         }
 
         public void WriteByte2(byte value0, byte value1)
         {
             WriteCheckForSpace(2);
-            m_Buffer[m_Pos] = value0;
-            m_Buffer[m_Pos + 1] = value1;
-            m_Pos += 2;
+            _buffer[Position] = value0;
+            _buffer[Position + 1] = value1;
+            Position += 2;
         }
 
         public void WriteByte4(byte value0, byte value1, byte value2, byte value3)
         {
             WriteCheckForSpace(4);
-            m_Buffer[m_Pos] = value0;
-            m_Buffer[m_Pos + 1] = value1;
-            m_Buffer[m_Pos + 2] = value2;
-            m_Buffer[m_Pos + 3] = value3;
-            m_Pos += 4;
+            _buffer[Position] = value0;
+            _buffer[Position + 1] = value1;
+            _buffer[Position + 2] = value2;
+            _buffer[Position + 3] = value3;
+            Position += 4;
         }
 
         public void WriteByte8(byte value0, byte value1, byte value2, byte value3, byte value4, byte value5, byte value6, byte value7)
         {
             WriteCheckForSpace(8);
-            m_Buffer[m_Pos] = value0;
-            m_Buffer[m_Pos + 1] = value1;
-            m_Buffer[m_Pos + 2] = value2;
-            m_Buffer[m_Pos + 3] = value3;
-            m_Buffer[m_Pos + 4] = value4;
-            m_Buffer[m_Pos + 5] = value5;
-            m_Buffer[m_Pos + 6] = value6;
-            m_Buffer[m_Pos + 7] = value7;
-            m_Pos += 8;
+            _buffer[Position] = value0;
+            _buffer[Position + 1] = value1;
+            _buffer[Position + 2] = value2;
+            _buffer[Position + 3] = value3;
+            _buffer[Position + 4] = value4;
+            _buffer[Position + 5] = value5;
+            _buffer[Position + 6] = value6;
+            _buffer[Position + 7] = value7;
+            Position += 8;
         }
 
         // every other Write() function in this class writes implicitly at the end-marker m_Pos.
@@ -117,21 +116,21 @@ namespace GameWorkstore.NetworkLibrary
 
             if (targetOffset == 0 && count == buffer.Length)
             {
-                buffer.CopyTo(m_Buffer, m_Pos);
+                buffer.CopyTo(_buffer, Position);
             }
             else
             {
                 //CopyTo doesnt take a count :(
                 for (int i = 0; i < count; i++)
                 {
-                    m_Buffer[targetOffset + i] = buffer[i];
+                    _buffer[targetOffset + i] = buffer[i];
                 }
             }
 
             // although this writes within the buffer, it could move the end-marker
-            if (newEnd > m_Pos)
+            if (newEnd > Position)
             {
-                m_Pos = newEnd;
+                Position = newEnd;
             }
         }
 
@@ -141,26 +140,26 @@ namespace GameWorkstore.NetworkLibrary
 
             if (count == buffer.Length)
             {
-                buffer.CopyTo(m_Buffer, m_Pos);
+                buffer.CopyTo(_buffer, Position);
             }
             else
             {
                 //CopyTo doesnt take a count :(
                 for (int i = 0; i < count; i++)
                 {
-                    m_Buffer[m_Pos + i] = buffer[i];
+                    _buffer[Position + i] = buffer[i];
                 }
             }
-            m_Pos += count;
+            Position += count;
         }
 
         void WriteCheckForSpace(ushort count)
         {
-            if (m_Pos + count < m_Buffer.Length)
+            if (Position + count < _buffer.Length)
                 return;
 
-            int newLen = (int)(m_Buffer.Length * k_GrowthFactor);
-            while (m_Pos + count >= newLen)
+            int newLen = (int)(_buffer.Length * k_GrowthFactor);
+            while (Position + count >= newLen)
             {
                 newLen = (int)(newLen * k_GrowthFactor);
                 if (newLen > k_BufferSizeWarning)
@@ -171,32 +170,32 @@ namespace GameWorkstore.NetworkLibrary
 
             // only do the copy once, even if newLen is increased multiple times
             byte[] tmp = new byte[newLen];
-            m_Buffer.CopyTo(tmp, 0);
-            m_Buffer = tmp;
+            _buffer.CopyTo(tmp, 0);
+            _buffer = tmp;
         }
 
         public void FinishMessage()
         {
             // two shorts (size and msgType) are in header.
-            ushort sz = (ushort)(m_Pos - (sizeof(ushort) * 2));
-            m_Buffer[0] = (byte)(sz & 0xff);
-            m_Buffer[1] = (byte)((sz >> 8) & 0xff);
+            ushort sz = (ushort)(Position - (sizeof(ushort) * 2));
+            _buffer[0] = (byte)(sz & 0xff);
+            _buffer[1] = (byte)((sz >> 8) & 0xff);
         }
 
         public void SeekZero()
         {
-            m_Pos = 0;
+            Position = 0;
         }
 
         public void Replace(byte[] buffer)
         {
-            m_Buffer = buffer;
-            m_Pos = 0;
+            _buffer = buffer;
+            Position = 0;
         }
 
         public override string ToString()
         {
-            return String.Format("NetBuf sz:{0} pos:{1}", m_Buffer.Length, m_Pos);
+            return string.Format("NetBuf sz:{0} pos:{1}", _buffer.Length, Position);
         }
     } // end NetBuffer
 

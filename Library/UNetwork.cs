@@ -144,12 +144,9 @@ namespace GameWorkstore.NetworkLibrary
             return outStr;
         }
 
-        public TMsg ReadMessage<TMsg>() where TMsg : NetworkPacketBase, new()
+        public T ReadMessage<T>() where T : NetworkPacketBase, new()
         {
-            var msg = new TMsg
-            {
-                conn = conn
-            };
+            var msg = new T { conn = conn };
             msg.Deserialize(reader);
             return msg;
         }

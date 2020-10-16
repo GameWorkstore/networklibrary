@@ -33,7 +33,7 @@ namespace GameWorkstore.NetworkLibrary
         {
             _objects.OnObjectCreated.Unregister(HandleObjectCreated);
             _objects.OnObjectDestroyed.Unregister(HandleObjectDestroyed);
-            RemoveHandler<AuthenticationResponsePacket>(true);
+            RemoveHandler<AuthenticationResponsePacket>(HandleAuthentication, true);
             if (IsInitialized())
             {
                 Shutdown();
@@ -182,9 +182,8 @@ namespace GameWorkstore.NetworkLibrary
         /// Authenticate player using payload and invokes AuthenticateConnection of RefuseConnection as result
         /// </summary>
         /// <param name="packet"></param>
-        protected virtual void HandleAuthentication(NetMessage packet)
+        protected virtual void HandleAuthentication(AuthenticationResponsePacket authentication)
         {
-            var authentication = packet.ReadMessage<AuthenticationResponsePacket>();
             //Accepts all authenticated until fill up:
             if(_connections.Count < MATCHSIZE && authentication.Payload.Equals("default"))
             {

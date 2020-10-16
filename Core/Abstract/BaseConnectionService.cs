@@ -57,12 +57,12 @@ namespace GameWorkstore.NetworkLibrary
 #endif
         }
 
-        private static void IsAlive(NetMessage evt) { }
+        private static void IsAlive(NetworkAlivePacket evt) { }
 
         public override void Postprocess()
         {
-            RemoveHandler<NetworkAlivePacket>(true);
-            RemoveHandler<NetworkAlivePacket>();
+            RemoveHandler<NetworkAlivePacket>(IsAlive,true);
+            RemoveHandler<NetworkAlivePacket>(IsAlive);
             DestroyTransportLayer();
         }
 
@@ -225,9 +225,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected NetConnection CreatePreconnection(int connectionId)
         {
-            var conn = new NetConnection();
-            conn.Initialize(SOCKETID, connectionId, GetHostTopology(), SimulationTime());
-            conn.InitializeHandlers(_prehandlers);
+            var conn = new NetConnection(SOCKETID, connectionId, GetHostTopology(), SimulationTime(), _prehandlers);
             _preconnections.Add(connectionId, conn);
             return conn;
         }
@@ -239,9 +237,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected NetConnection CreateConnection(int connectionId)
         {
-            var conn = new NetConnection();
-            conn.Initialize(SOCKETID, connectionId, GetHostTopology(), SimulationTime());
-            conn.InitializeHandlers(_handlers);
+            var conn = new NetConnection(SOCKETID, connectionId, GetHostTopology(), SimulationTime(), _handlers);
             _connections.Add(connectionId, conn);
             return conn;
         }
@@ -251,7 +247,7 @@ namespace GameWorkstore.NetworkLibrary
             return _connections.Remove(connectionId);
         }
 
-        public void AddHandler<T>(NetworkHandler function, bool prehandler = false) where T : NetworkPacketBase, new()
+        public void AddHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
         {
             var packet = new T();
             if (prehandler)
@@ -264,17 +260,14 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public void RemoveHandler<T>(bool prehandler = false) where T : NetworkPacketBase, new()
+        public bool RemoveHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
         {
             var packet = new T();
             if (prehandler)
             {
-                _prehandlers.UnregisterHandler(packet.Code);
+                return _prehandlers.UnregisterHandler(packet.Code, function);
             }
-            else
-            {
-                _handlers.UnregisterHandler(packet.Code);
-            }
+            return _handlers.UnregisterHandler(packet.Code, function);
         }
 
         protected abstract void HandleConnection(int connectionId, byte error);

@@ -1,3 +1,4 @@
+using GameWorkstore.Patterns;
 using System;
 using System.Text;
 using UnityEngine;
@@ -509,184 +510,85 @@ namespace GameWorkstore.NetworkLibrary
         /// ARRAYS
         /// </summary>
 
-        public bool[] ReadBooleans()
+        private T[] ReadArray<T>(Func<T> read)
         {
             var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<bool>();
-            var value = new bool[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadBoolean();
+            if (sz == 0) return Array.Empty<T>();
+            var value = new T[sz];
+            for (int i = 0; i < sz; i++) value[i] = read();
             return value;
         }
 
-        public byte[] ReadBytes()
+        private T[] ReadArray<T>(bool signed, Func<bool, T> read)
         {
             var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<byte>();
-            var value = new byte[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadByte();
+            if (sz == 0) return Array.Empty<T>();
+            var value = new T[sz];
+            for (int i = 0; i < sz; i++) value[i] = read(signed);
             return value;
         }
 
-        public char[] ReadChars()
+        public bool[] ReadBooleans() { return ReadArray(ReadBoolean); }
+        public byte[] ReadBytes() { return ReadArray(ReadByte); }
+        public char[] ReadChars() { return ReadArray(ReadChar); }
+        public ushort[] ReadUshorts() { return ReadArray(ReadUshort); }
+        public uint[] ReadUInts() { return ReadArray(ReadUInt); }
+        public ulong[] ReadUlongs() { return ReadArray(ReadUlong); }
+        public sbyte[] ReadSBytes() { return ReadArray(ReadSByte); }
+        public short[] ReadShorts() { return ReadArray(ReadShort); }
+        public int[] ReadInts() { return ReadArray(ReadInt); }
+        public long[] ReadLongs() { return ReadArray(ReadLong); }
+        public string[] ReadStrings() { return ReadArray(ReadString); }
+        public NetworkInstanceId[] ReadNetworkIds() { return ReadArray(ReadNetworkId); }
+        public NetworkHash128[] ReadNetworkHash128s() { return ReadArray(ReadNetworkHash128); }
+        public Vector2[] ReadVector2s() { return ReadArray(ReadVector2); }
+        public Vector3[] ReadVector3s() { return ReadArray(ReadVector3); }
+        public Vector4[] ReadVector4s() { return ReadArray(ReadVector4); }
+        public Quaternion[] ReadQuaternions() { return ReadArray(ReadQuaternion); }
+        public Vector2[] ReadVector2s(bool signed) { return ReadArray(signed, ReadVector2); }
+        public Vector3[] ReadVector3s(bool signed) { return ReadArray(signed, ReadVector3); }
+        public Vector4[] ReadVector4s(bool signed) { return ReadArray(signed, ReadVector4); }
+
+        /// <summary>
+        /// HIGHSPEEDARRAYS
+        /// </summary>
+
+        private void ReadArray<T>(HighSpeedArray<T> outArray, Func<T> Read)
         {
             var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<char>();
-            var value = new char[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadChar();
-            return value;
+            outArray.Clear();
+            outArray.SetCapacity(sz);
+            for (int i = 0; i < sz; i++) outArray.Add(Read());
         }
 
-        public ushort[] ReadUInt16s()
+        private void ReadArray<T>(HighSpeedArray<T> outArray, bool signed, Func<bool, T> Read)
         {
             var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<ushort>();
-            var value = new ushort[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadUshort();
-            return value;
+            outArray.Clear();
+            outArray.SetCapacity(sz);
+            for (int i = 0; i < sz; i++) outArray.Add(Read(signed));
         }
 
-        public uint[] ReadUInts()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<uint>();
-            var value = new uint[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadUInt();
-            return value;
-        }
+        public void ReadBooleans(HighSpeedArray<bool> outArray) { ReadArray(outArray, ReadBoolean); }
+        public void ReadBytes(HighSpeedArray<byte> outArray) { ReadArray(outArray, ReadByte); }
+        public void ReadChars(HighSpeedArray<char> outArray) { ReadArray(outArray, ReadChar); }
+        public void ReadUInt16s(HighSpeedArray<ushort> outArray) { ReadArray(outArray, ReadUshort); }
+        public void ReadUInts(HighSpeedArray<uint> outArray) { ReadArray(outArray, ReadUInt); }
+        public void ReadUlongs(HighSpeedArray<ulong> outArray) { ReadArray(outArray, ReadUlong); }
 
-        public ulong[] ReadUlongs()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<ulong>();
-            var value = new ulong[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadUlong();
-            return value;
-        }
-
-        public sbyte[] ReadSBytes()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<sbyte>();
-            var value = new sbyte[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadSByte();
-            return value;
-        }
-
-        public short[] ReadShorts()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<short>();
-            var value = new short[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadShort();
-            return value;
-        }
-
-        public int[] ReadInts()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<int>();
-            var value = new int[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadInt();
-            return value;
-        }
-
-        public long[] ReadLongs()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<long>();
-            var value = new long[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadLong();
-            return value;
-        }
-
-        public string[] ReadStrings()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<string>();
-            var value = new string[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadString();
-            return value;
-        }
-
-        public NetworkInstanceId[] ReadNetworkIds()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<NetworkInstanceId>();
-            var value = new NetworkInstanceId[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadNetworkId();
-            return value;
-        }
-
-        public NetworkHash128[] ReadNetworkHash128s()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<NetworkHash128>();
-            var value = new NetworkHash128[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadNetworkHash128();
-            return value;
-        }
-
-        public Vector2[] ReadVector2s()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Vector2>();
-            var value = new Vector2[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadVector2();
-            return value;
-        }
-
-        public Vector3[] ReadVector3s()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Vector3>();
-            var value = new Vector3[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadVector3();
-            return value;
-        }
-
-        public Vector4[] ReadVector4s()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Vector4>();
-            var value = new Vector4[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadVector4();
-            return value;
-        }
-
-        public Vector2[] ReadVector2s(bool signed)
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Vector2>();
-            var value = new Vector2[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadVector2(signed);
-            return value;
-        }
-
-        public Vector3[] ReadVector3s(bool signed)
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Vector3>();
-            var value = new Vector3[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadVector3(signed);
-            return value;
-        }
-
-        public Vector4[] ReadVector4s(bool signed)
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Vector4>();
-            var value = new Vector4[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadVector4(signed);
-            return value;
-        }
-
-        public Quaternion[] ReadQuaternions()
-        {
-            var sz = ReadUshort();
-            if (sz == 0) return Array.Empty<Quaternion>();
-            var value = new Quaternion[sz];
-            for (int i = 0; i < sz; i++) value[i] = ReadQuaternion();
-            return value;
-        }
+        public void ReadSBytes(HighSpeedArray<sbyte> outArray) { ReadArray(outArray, ReadSByte); }
+        public void ReadShorts(HighSpeedArray<short> outArray) { ReadArray(outArray, ReadShort); }
+        public void ReadInts(HighSpeedArray<int> outArray) { ReadArray(outArray, ReadInt); }
+        public void ReadLongs(HighSpeedArray<long> outArray) { ReadArray(outArray, ReadLong); }
+        public void ReadStrings(HighSpeedArray<string> outArray) { ReadArray(outArray, ReadString); }
+        public void ReadNetworkIds(HighSpeedArray<NetworkInstanceId> outArray) { ReadArray(outArray, ReadNetworkId); }
+        public void ReadNetworkHash128s(HighSpeedArray<NetworkHash128> outArray) { ReadArray(outArray, ReadNetworkHash128); }
+        public void ReadVector2s(HighSpeedArray<Vector2> outArray) { ReadArray(outArray, ReadVector2); }
+        public void ReadVector3s(HighSpeedArray<Vector3> outArray) { ReadArray(outArray, ReadVector3); }
+        public void ReadVector4s(HighSpeedArray<Vector4> outArray) { ReadArray(outArray, ReadVector4); }
+        public void ReadQuaternions(HighSpeedArray<Quaternion> outArray) { ReadArray(outArray, ReadQuaternion); }
+        public void ReadVector2s(HighSpeedArray<Vector2> outArray, bool signed) { ReadArray(outArray, signed, ReadVector2); }
+        public void ReadVector3s(HighSpeedArray<Vector3> outArray, bool signed) { ReadArray(outArray, signed, ReadVector3); }
+        public void ReadVector4s(HighSpeedArray<Vector4> outArray, bool signed) { ReadArray(outArray, signed, ReadVector4); }
     };
 }

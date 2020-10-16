@@ -1,3 +1,4 @@
+using GameWorkstore.Patterns;
 using System;
 using System.Text;
 using UnityEngine;
@@ -554,184 +555,86 @@ namespace GameWorkstore.NetworkLibrary
         /// ARRAYS
         /// </summary>
 
-        public void Write(bool[] array)
+        private void Write<T>(T[] array, Action<T> write)
         {
             Write((ushort)array.Length);
             for (int i = 0; i < array.Length; i++)
             {
-                Write(array[i]);
+                write(array[i]);
             }
         }
 
-        public void Write(byte[] array)
+        private void Write<T>(T[] array, bool signed, Action<T, bool> write)
         {
             Write((ushort)array.Length);
             for (int i = 0; i < array.Length; i++)
             {
-                Write(array[i]);
+                write(array[i], signed);
             }
         }
 
-        public void Write(char[] array)
+        public void Write(bool[] array) { Write(array, Write); }
+        public void Write(byte[] array) { Write(array, Write); }
+        public void Write(char[] array) { Write(array, Write); }
+        public void Write(ushort[] array) { Write(array, Write); }
+        public void Write(uint[] array) { Write(array, Write); }
+        public void Write(ulong[] array) { Write(array, Write); }
+        public void Write(sbyte[] array) { Write(array, Write); }
+        public void Write(short[] array) { Write(array, Write); }
+        public void Write(int[] array) { Write(array, Write); }
+        public void Write(long[] array) { Write(array, Write); }
+        public void Write(string[] array) { Write(array, Write); }
+        public void Write(NetworkInstanceId[] array) { Write(array, Write); }
+        public void Write(NetworkHash128[] array) { Write(array, Write); }
+        public void Write(Vector2[] array) { Write(array, Write); }
+        public void Write(Vector3[] array) { Write(array, Write); }
+        public void Write(Vector4[] array) { Write(array, Write); }
+        public void Write(Quaternion[] array) { Write(array, Write); }
+        public void Write(Vector2[] array, bool signed) { Write(array, signed, Write); }
+        public void Write(Vector3[] array, bool signed) { Write(array, signed, Write); }
+        public void Write(Vector4[] array, bool signed) { Write(array, signed, Write); }
+
+        /// <summary>
+        /// HIGHSPEEDARRAYS
+        /// </summary>
+
+        private void Write<T>(HighSpeedArray<T> array, Action<T> write)
         {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
+            Write((ushort)array.Count);
+            for (int i = 0; i < array.Count; i++)
             {
-                Write(array[i]);
+                write(array[i]);
             }
         }
 
-        public void Write(ushort[] array)
+        private void Write<T>(HighSpeedArray<T> array, bool signed, Action<T,bool> write)
         {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
+            Write((ushort)array.Count);
+            for (int i = 0; i < array.Count; i++)
             {
-                Write(array[i]);
+                write(array[i], signed);
             }
         }
 
-        public void Write(uint[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                WritePackedUInt32(array[i]);
-            }
-        }
-
-        public void Write(ulong[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                WritePackedUInt64(array[i]);
-            }
-        }
-
-        public void Write(sbyte[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(short[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(int[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(long[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(string[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(NetworkInstanceId[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(NetworkHash128[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(Vector2[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(Vector3[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(Vector4[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
-
-        public void Write(Vector2[] array, bool signed)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i], signed);
-            }
-        }
-
-        public void Write(Vector3[] array, bool signed)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i], signed);
-            }
-        }
-
-        public void Write(Vector4[] array, bool signed)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i], signed);
-            }
-        }
-
-        public void Write(Quaternion[] array)
-        {
-            Write((ushort)array.Length);
-            for (int i = 0; i < array.Length; i++)
-            {
-                Write(array[i]);
-            }
-        }
+        public void Write(HighSpeedArray<bool> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<byte> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<char> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<ushort> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<uint> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<ulong> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<sbyte> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<short> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<int> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<long> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<string> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<NetworkInstanceId> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<NetworkHash128> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<Vector2> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<Vector3> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<Vector4> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<Quaternion> array) { Write(array, Write); }
+        public void Write(HighSpeedArray<Vector2> array, bool signed) { Write(array, signed, Write); }
+        public void Write(HighSpeedArray<Vector3> array, bool signed) { Write(array, signed, Write); }
+        public void Write(HighSpeedArray<Vector4> array, bool signed) { Write(array, signed, Write); }
     };
 }

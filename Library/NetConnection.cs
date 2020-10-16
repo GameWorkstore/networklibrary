@@ -184,8 +184,8 @@ namespace GameWorkstore.NetworkLibrary
         private void LogSend(byte[] bytes)
         {
             NetReader reader = new NetReader(bytes);
-            var size = reader.ReadUInt16();
-            var code = reader.ReadUInt16();
+            var size = reader.ReadUshort();
+            var code = reader.ReadUshort();
 
             const int k_PayloadStartPosition = 4;
 
@@ -253,8 +253,8 @@ namespace GameWorkstore.NetworkLibrary
             {
                 // the reader passed to user code has a copy of bytes from the real stream. user code never touches the real stream.
                 // this ensures it can never get out of sync if user code reads less or more than the real amount.
-                ushort sz = reader.ReadUInt16();
-                short code = reader.ReadInt16();
+                ushort sz = reader.ReadUshort();
+                short code = reader.ReadShort();
 
                 // create a reader just for this message
                 byte[] msgBuffer = reader.ReadBytes(sz);

@@ -4,42 +4,42 @@ using UnityEngine;
 
 namespace GameWorkstore.NetworkLibrary
 {
-    /*
-    // Binary stream Writer. Supports simple types, buffers, arrays, structs, and nested types
-        */
+    /// <summary>
+    /// Binary stream Writer. Supports simple types, buffers, arrays, structs, and nested types
+    /// </summary>
     public class NetWriter
     {
-        const int k_MaxStringLength = 1024 * 32;
-        NetBuffer m_Buffer;
-        static Encoding s_Encoding;
-        static byte[] s_StringWriteBuffer;
+        private const int k_MaxStringLength = 1024 * 32;
+        private readonly NetBuffer _buffer;
+        private static Encoding _encoding;
+        private static byte[] _stringWriteBuffer;
 
         public NetWriter()
         {
-            m_Buffer = new NetBuffer();
-            if (s_Encoding == null)
+            _buffer = new NetBuffer();
+            if (_encoding == null)
             {
-                s_Encoding = new UTF8Encoding();
-                s_StringWriteBuffer = new byte[k_MaxStringLength];
+                _encoding = new UTF8Encoding();
+                _stringWriteBuffer = new byte[k_MaxStringLength];
             }
         }
 
         public NetWriter(byte[] buffer)
         {
-            m_Buffer = new NetBuffer(buffer);
-            if (s_Encoding == null)
+            _buffer = new NetBuffer(buffer);
+            if (_encoding == null)
             {
-                s_Encoding = new UTF8Encoding();
-                s_StringWriteBuffer = new byte[k_MaxStringLength];
+                _encoding = new UTF8Encoding();
+                _stringWriteBuffer = new byte[k_MaxStringLength];
             }
         }
 
-        public short Position { get { return (short)m_Buffer.Position; } }
+        public short Position { get { return (short)_buffer.Position; } }
 
         public byte[] ToArray()
         {
-            var newArray = new byte[m_Buffer.AsArraySegment().Count];
-            Array.Copy(m_Buffer.AsArraySegment().Array, newArray, m_Buffer.AsArraySegment().Count);
+            var newArray = new byte[_buffer.AsArraySegment().Count];
+            Array.Copy(_buffer.AsArraySegment().Array, newArray, _buffer.AsArraySegment().Count);
             return newArray;
         }
 
@@ -50,7 +50,7 @@ namespace GameWorkstore.NetworkLibrary
 
         internal ArraySegment<byte> AsArraySegment()
         {
-            return m_Buffer.AsArraySegment();
+            return _buffer.AsArraySegment();
         }
 
         // http://sqlite.org/src4/doc/trunk/www/varint.wiki
@@ -162,7 +162,6 @@ namespace GameWorkstore.NetworkLibrary
                 Write((byte)((value >> 48) & 0xFF));
                 return;
             }
-
             // all others
             {
                 Write((byte)255);
@@ -189,33 +188,33 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Write(char value)
         {
-            m_Buffer.WriteByte((byte)value);
+            _buffer.WriteByte((byte)value);
         }
 
         public void Write(byte value)
         {
-            m_Buffer.WriteByte(value);
+            _buffer.WriteByte(value);
         }
 
         public void Write(sbyte value)
         {
-            m_Buffer.WriteByte((byte)value);
+            _buffer.WriteByte((byte)value);
         }
 
         public void Write(short value)
         {
-            m_Buffer.WriteByte2((byte)(value & 0xff), (byte)((value >> 8) & 0xff));
+            _buffer.WriteByte2((byte)(value & 0xff), (byte)((value >> 8) & 0xff));
         }
 
         public void Write(ushort value)
         {
-            m_Buffer.WriteByte2((byte)(value & 0xff), (byte)((value >> 8) & 0xff));
+            _buffer.WriteByte2((byte)(value & 0xff), (byte)((value >> 8) & 0xff));
         }
 
         public void Write(int value)
         {
             // little endian...
-            m_Buffer.WriteByte4(
+            _buffer.WriteByte4(
                 (byte)(value & 0xff),
                 (byte)((value >> 8) & 0xff),
                 (byte)((value >> 16) & 0xff),
@@ -224,7 +223,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Write(uint value)
         {
-            m_Buffer.WriteByte4(
+            _buffer.WriteByte4(
                 (byte)(value & 0xff),
                 (byte)((value >> 8) & 0xff),
                 (byte)((value >> 16) & 0xff),
@@ -233,7 +232,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Write(long value)
         {
-            m_Buffer.WriteByte8(
+            _buffer.WriteByte8(
                 (byte)(value & 0xff),
                 (byte)((value >> 8) & 0xff),
                 (byte)((value >> 16) & 0xff),
@@ -246,7 +245,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Write(ulong value)
         {
-            m_Buffer.WriteByte8(
+            _buffer.WriteByte8(
                 (byte)(value & 0xff),
                 (byte)((value >> 8) & 0xff),
                 (byte)((value >> 16) & 0xff),
@@ -257,66 +256,52 @@ namespace GameWorkstore.NetworkLibrary
                 (byte)((value >> 56) & 0xff));
         }
 
-#if !INCLUDE_IL2CPP
-        private static UIntFloat s_FloatConverter;
-#endif
-
         public void Write(float value)
         {
-#if INCLUDE_IL2CPP
             Write(BitConverter.ToUInt32(BitConverter.GetBytes(value), 0));
-#else
-            s_FloatConverter.floatValue = value;
-            Write(s_FloatConverter.intValue);
-#endif
         }
 
         public void Write(double value)
         {
-#if INCLUDE_IL2CPP
             Write(BitConverter.ToUInt64(BitConverter.GetBytes(value), 0));
-#else
-            s_FloatConverter.doubleValue = value;
-            Write(s_FloatConverter.longValue);
-#endif
         }
 
         public void Write(string value)
         {
             if (value == null)
             {
-                m_Buffer.WriteByte2(0, 0);
+                _buffer.WriteByte2(0, 0);
                 return;
             }
 
-            int len = s_Encoding.GetByteCount(value);
+            int len = _encoding.GetByteCount(value);
 
             if (len >= k_MaxStringLength)
             {
                 throw new IndexOutOfRangeException("Serialize(string) too long: " + value.Length);
             }
 
-            Write((ushort)(len));
-            int numBytes = s_Encoding.GetBytes(value, 0, value.Length, s_StringWriteBuffer, 0);
-            m_Buffer.WriteBytes(s_StringWriteBuffer, (ushort)numBytes);
+            Write((ushort)len);
+            int numBytes = _encoding.GetBytes(value, 0, value.Length, _stringWriteBuffer, 0);
+            _buffer.WriteBytes(_stringWriteBuffer, (ushort)numBytes);
         }
 
         public void Write(bool value)
         {
             if (value)
-                m_Buffer.WriteByte(1);
+                _buffer.WriteByte(1);
             else
-                m_Buffer.WriteByte(0);
+                _buffer.WriteByte(0);
         }
 
-        public void Write(byte[] buffer, int count)
+        /*public void Write(byte[] buffer, int count)
         {
             if (count > ushort.MaxValue)
             {
                 if (LogFilter.logError) { Debug.LogError("NetworkWriter Write: buffer is too large (" + count + ") bytes. The maximum buffer size is 64K bytes."); }
                 return;
             }
-            m_Buffer.WriteBytes(buffer, (ushort)count);
+            _buffer.WriteBytes(buffer, (ushort)count);
         }
 
         public void Write(byte[] buffer, int offset, int count)
@@ -326,7 +311,7 @@ namespace GameWorkstore.NetworkLibrary
                 if (LogFilter.logError) { Debug.LogError("NetworkWriter Write: buffer is too large (" + count + ") bytes. The maximum buffer size is 64K bytes."); }
                 return;
             }
-            m_Buffer.WriteBytesAtOffset(buffer, (ushort)offset, (ushort)count);
+            _buffer.WriteBytesAtOffset(buffer, (ushort)offset, (ushort)count);
         }
 
         public void WriteBytesAndSize(byte[] buffer, int count)
@@ -344,7 +329,7 @@ namespace GameWorkstore.NetworkLibrary
             }
 
             Write((ushort)count);
-            m_Buffer.WriteBytes(buffer, (ushort)count);
+            _buffer.WriteBytes(buffer, (ushort)count);
         }
 
         //NOTE: this will write the entire buffer.. including trailing empty space!
@@ -361,8 +346,8 @@ namespace GameWorkstore.NetworkLibrary
                 return;
             }
             Write((ushort)buffer.Length);
-            m_Buffer.WriteBytes(buffer, (UInt16)buffer.Length);
-        }
+            _buffer.WriteBytes(buffer, (UInt16)buffer.Length);
+        }*/
 
         public void Write(Vector2 value)
         {
@@ -476,7 +461,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void SeekZero()
         {
-            m_Buffer.SeekZero();
+            _buffer.SeekZero();
         }
 
         public void StartMessage(short msgType)
@@ -484,7 +469,7 @@ namespace GameWorkstore.NetworkLibrary
             SeekZero();
 
             // two bytes for size, will be filled out in FinishMessage
-            m_Buffer.WriteByte2(0, 0);
+            _buffer.WriteByte2(0, 0);
 
             // two bytes for message type
             Write(msgType);
@@ -493,7 +478,7 @@ namespace GameWorkstore.NetworkLibrary
         public void FinishMessage()
         {
             // writes correct size into space at start of buffer
-            m_Buffer.FinishMessage();
+            _buffer.FinishMessage();
         }
 
         /// ----------------------
@@ -563,6 +548,190 @@ namespace GameWorkstore.NetworkLibrary
         {
             WritePackedUInt32((uint)Mathf.Abs(value));
             Write((byte)(Mathf.Repeat(Mathf.Abs(value), 1) * byteMaxValue1));
+        }
+
+        /// <summary>
+        /// ARRAYS
+        /// </summary>
+
+        public void Write(bool[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(byte[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(char[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(ushort[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(uint[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                WritePackedUInt32(array[i]);
+            }
+        }
+
+        public void Write(ulong[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                WritePackedUInt64(array[i]);
+            }
+        }
+
+        public void Write(sbyte[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(short[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(int[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(long[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(string[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(NetworkInstanceId[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(NetworkHash128[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(Vector2[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(Vector3[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(Vector4[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
+        }
+
+        public void Write(Vector2[] array, bool signed)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i], signed);
+            }
+        }
+
+        public void Write(Vector3[] array, bool signed)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i], signed);
+            }
+        }
+
+        public void Write(Vector4[] array, bool signed)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i], signed);
+            }
+        }
+
+        public void Write(Quaternion[] array)
+        {
+            Write((ushort)array.Length);
+            for (int i = 0; i < array.Length; i++)
+            {
+                Write(array[i]);
+            }
         }
     };
 }

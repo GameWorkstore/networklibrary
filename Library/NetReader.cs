@@ -1,62 +1,60 @@
 using System;
 using System.Text;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace GameWorkstore.NetworkLibrary
 {
     public class NetReader
     {
-        NetBuffer m_buf;
-
-        const int k_MaxStringLength = 1024 * 32;
-        const int k_InitialStringBufferSize = 1024;
-        static byte[] s_StringReaderBuffer;
-        static Encoding s_Encoding;
+        private readonly NetBuffer _buffer;
+        private const int k_MaxStringLength = 1024 * 32;
+        private const int k_InitialStringBufferSize = 1024;
+        private static byte[] _stringReaderBuffer;
+        private static Encoding _encoding;
 
         public NetReader()
         {
-            m_buf = new NetBuffer();
+            _buffer = new NetBuffer();
             Initialize();
         }
 
         public NetReader(NetWriter writer)
         {
-            m_buf = new NetBuffer(writer.AsArray());
+            _buffer = new NetBuffer(writer.AsArray());
             Initialize();
         }
 
         public NetReader(byte[] buffer)
         {
-            m_buf = new NetBuffer(buffer);
+            _buffer = new NetBuffer(buffer);
             Initialize();
         }
 
         static void Initialize()
         {
-            if (s_Encoding == null)
+            if (_encoding == null)
             {
-                s_StringReaderBuffer = new byte[k_InitialStringBufferSize];
-                s_Encoding = new UTF8Encoding();
+                _stringReaderBuffer = new byte[k_InitialStringBufferSize];
+                _encoding = new UTF8Encoding();
             }
         }
 
-        public uint Position { get { return m_buf.Position; } }
+        public uint Position { get { return _buffer.Position; } }
 
         public void SeekZero()
         {
-            m_buf.SeekZero();
+            _buffer.SeekZero();
         }
 
         internal void Replace(byte[] buffer)
         {
-            m_buf.Replace(buffer);
+            _buffer.Replace(buffer);
         }
 
         // http://sqlite.org/src4/doc/trunk/www/varint.wiki
         // NOTE: big endian.
 
-        public UInt32 ReadPackedUInt32()
+        public uint ReadPackedUInt32()
         {
             byte a0 = ReadByte();
             if (a0 < 241)
@@ -86,7 +84,7 @@ namespace GameWorkstore.NetworkLibrary
             throw new IndexOutOfRangeException("ReadPackedUInt32() failure: " + a0);
         }
 
-        public UInt64 ReadPackedUInt64()
+        public ulong ReadPackedUInt64()
         {
             byte a0 = ReadByte();
             if (a0 < 241)
@@ -139,7 +137,7 @@ namespace GameWorkstore.NetworkLibrary
             byte a8 = ReadByte();
             if (a0 == 255)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24) + (((UInt64)a5) << 32) + (((UInt64)a6) << 40) + (((UInt64)a7) << 48)  + (((UInt64)a8) << 56);
+                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24) + (((UInt64)a5) << 32) + (((UInt64)a6) << 40) + (((UInt64)a7) << 48) + (((UInt64)a8) << 56);
             }
             throw new IndexOutOfRangeException("ReadPackedUInt64() failure: " + a0);
         }
@@ -156,133 +154,123 @@ namespace GameWorkstore.NetworkLibrary
 
         public byte ReadByte()
         {
-            return m_buf.ReadByte();
+            return _buffer.ReadByte();
         }
 
         public sbyte ReadSByte()
         {
-            return (sbyte)m_buf.ReadByte();
+            return (sbyte)_buffer.ReadByte();
         }
 
-        public short ReadInt16()
+        public short ReadShort()
         {
             ushort value = 0;
-            value |= m_buf.ReadByte();
-            value |= (ushort)(m_buf.ReadByte() << 8);
+            value |= _buffer.ReadByte();
+            value |= (ushort)(_buffer.ReadByte() << 8);
             return (short)value;
         }
 
-        public ushort ReadUInt16()
+        public ushort ReadUshort()
         {
             ushort value = 0;
-            value |= m_buf.ReadByte();
-            value |= (ushort)(m_buf.ReadByte() << 8);
+            value |= _buffer.ReadByte();
+            value |= (ushort)(_buffer.ReadByte() << 8);
             return value;
         }
 
-        public int ReadInt32()
+        public int ReadInt()
         {
             uint value = 0;
-            value |= m_buf.ReadByte();
-            value |= (uint)(m_buf.ReadByte() << 8);
-            value |= (uint)(m_buf.ReadByte() << 16);
-            value |= (uint)(m_buf.ReadByte() << 24);
+            value |= _buffer.ReadByte();
+            value |= (uint)(_buffer.ReadByte() << 8);
+            value |= (uint)(_buffer.ReadByte() << 16);
+            value |= (uint)(_buffer.ReadByte() << 24);
             return (int)value;
         }
 
-        public uint ReadUInt32()
+        public uint ReadUInt()
         {
             uint value = 0;
-            value |= m_buf.ReadByte();
-            value |= (uint)(m_buf.ReadByte() << 8);
-            value |= (uint)(m_buf.ReadByte() << 16);
-            value |= (uint)(m_buf.ReadByte() << 24);
+            value |= _buffer.ReadByte();
+            value |= (uint)(_buffer.ReadByte() << 8);
+            value |= (uint)(_buffer.ReadByte() << 16);
+            value |= (uint)(_buffer.ReadByte() << 24);
             return value;
         }
 
-        public long ReadInt64()
+        public long ReadLong()
         {
             ulong value = 0;
 
-            ulong other = m_buf.ReadByte();
+            ulong other = _buffer.ReadByte();
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 8;
+            other = ((ulong)_buffer.ReadByte()) << 8;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 16;
+            other = ((ulong)_buffer.ReadByte()) << 16;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 24;
+            other = ((ulong)_buffer.ReadByte()) << 24;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 32;
+            other = ((ulong)_buffer.ReadByte()) << 32;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 40;
+            other = ((ulong)_buffer.ReadByte()) << 40;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 48;
+            other = ((ulong)_buffer.ReadByte()) << 48;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 56;
+            other = ((ulong)_buffer.ReadByte()) << 56;
             value |= other;
 
             return (long)value;
         }
 
-        public ulong ReadUInt64()
+        public ulong ReadUlong()
         {
             ulong value = 0;
-            ulong other = m_buf.ReadByte();
+            ulong other = _buffer.ReadByte();
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 8;
+            other = ((ulong)_buffer.ReadByte()) << 8;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 16;
+            other = ((ulong)_buffer.ReadByte()) << 16;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 24;
+            other = ((ulong)_buffer.ReadByte()) << 24;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 32;
+            other = ((ulong)_buffer.ReadByte()) << 32;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 40;
+            other = ((ulong)_buffer.ReadByte()) << 40;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 48;
+            other = ((ulong)_buffer.ReadByte()) << 48;
             value |= other;
 
-            other = ((ulong)m_buf.ReadByte()) << 56;
+            other = ((ulong)_buffer.ReadByte()) << 56;
             value |= other;
             return value;
         }
 
         public float ReadSingle()
         {
-#if INCLUDE_IL2CPP
-            return BitConverter.ToSingle(BitConverter.GetBytes(ReadUInt32()), 0);
-#else
-            uint value = ReadUInt32();
-            return FloatConversion.ToSingle(value);
-#endif
+            return BitConverter.ToSingle(BitConverter.GetBytes(ReadUInt()), 0);
         }
 
         public double ReadDouble()
         {
-#if INCLUDE_IL2CPP
-            return BitConverter.ToDouble(BitConverter.GetBytes(ReadUInt64()), 0);
-#else
-            ulong value = ReadUInt64();
-            return FloatConversion.ToDouble(value);
-#endif
+            return BitConverter.ToDouble(BitConverter.GetBytes(ReadUlong()), 0);
         }
 
         public string ReadString()
         {
-            UInt16 numBytes = ReadUInt16();
+            ushort numBytes = ReadUshort();
             if (numBytes == 0)
                 return "";
 
@@ -291,25 +279,25 @@ namespace GameWorkstore.NetworkLibrary
                 throw new IndexOutOfRangeException("ReadString() too long: " + numBytes);
             }
 
-            while (numBytes > s_StringReaderBuffer.Length)
+            while (numBytes > _stringReaderBuffer.Length)
             {
-                s_StringReaderBuffer = new byte[s_StringReaderBuffer.Length * 2];
+                _stringReaderBuffer = new byte[_stringReaderBuffer.Length * 2];
             }
 
-            m_buf.ReadBytes(s_StringReaderBuffer, numBytes);
+            _buffer.ReadBytes(_stringReaderBuffer, numBytes);
 
-            char[] chars = s_Encoding.GetChars(s_StringReaderBuffer, 0, numBytes);
+            char[] chars = _encoding.GetChars(_stringReaderBuffer, 0, numBytes);
             return new string(chars);
         }
 
         public char ReadChar()
         {
-            return (char)m_buf.ReadByte();
+            return (char)_buffer.ReadByte();
         }
 
         public bool ReadBoolean()
         {
-            int value = m_buf.ReadByte();
+            int value = _buffer.ReadByte();
             return value == 1;
         }
 
@@ -320,17 +308,8 @@ namespace GameWorkstore.NetworkLibrary
                 throw new IndexOutOfRangeException("NetworkReader ReadBytes " + count);
             }
             byte[] value = new byte[count];
-            m_buf.ReadBytes(value, (uint)count);
+            _buffer.ReadBytes(value, (uint)count);
             return value;
-        }
-
-        public byte[] ReadBytesAndSize()
-        {
-            ushort sz = ReadUInt16();
-            if (sz == 0)
-                return null;
-
-            return ReadBytes(sz);
         }
 
         public Vector2 ReadVector2()
@@ -375,23 +354,25 @@ namespace GameWorkstore.NetworkLibrary
 
         public Matrix4x4 ReadMatrix4x4()
         {
-            Matrix4x4 m = new Matrix4x4();
-            m.m00 = ReadSingle();
-            m.m01 = ReadSingle();
-            m.m02 = ReadSingle();
-            m.m03 = ReadSingle();
-            m.m10 = ReadSingle();
-            m.m11 = ReadSingle();
-            m.m12 = ReadSingle();
-            m.m13 = ReadSingle();
-            m.m20 = ReadSingle();
-            m.m21 = ReadSingle();
-            m.m22 = ReadSingle();
-            m.m23 = ReadSingle();
-            m.m30 = ReadSingle();
-            m.m31 = ReadSingle();
-            m.m32 = ReadSingle();
-            m.m33 = ReadSingle();
+            Matrix4x4 m = new Matrix4x4
+            {
+                m00 = ReadSingle(),
+                m01 = ReadSingle(),
+                m02 = ReadSingle(),
+                m03 = ReadSingle(),
+                m10 = ReadSingle(),
+                m11 = ReadSingle(),
+                m12 = ReadSingle(),
+                m13 = ReadSingle(),
+                m20 = ReadSingle(),
+                m21 = ReadSingle(),
+                m22 = ReadSingle(),
+                m23 = ReadSingle(),
+                m30 = ReadSingle(),
+                m31 = ReadSingle(),
+                m32 = ReadSingle(),
+                m33 = ReadSingle()
+            };
             return m;
         }
 
@@ -419,7 +400,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public override string ToString()
         {
-            return m_buf.ToString();
+            return _buffer.ToString();
         }
 
         public TMsg ReadMessage<TMsg>() where TMsg : NetworkPacketBase, new()
@@ -432,7 +413,7 @@ namespace GameWorkstore.NetworkLibrary
         /// <summary>
         /// READERS
         /// </summary>
-        
+
         /// <summary>
         /// Float decimal values are NEVER equal to 1;
         /// In this case,we can assume that we have from 0 to 256, but 256 will never be reached;
@@ -454,8 +435,7 @@ namespace GameWorkstore.NetworkLibrary
             Vector2 vector = Vector2.zero;
             if (signed)
             {
-                bool first, second, third, fourth;
-                ReadBools(out first, out second, out third, out fourth);
+                ReadBools(out bool first, out bool second, out bool third, out bool fourth);
 
                 vector.x = (first ? 1 : -1) * ReadApproxFloat();
                 vector.y = (second ? 1 : -1) * ReadApproxFloat();
@@ -473,8 +453,7 @@ namespace GameWorkstore.NetworkLibrary
             Vector3 vector = Vector3.zero;
             if (signed)
             {
-                bool first, second, third, fourth;
-                ReadBools(out first, out second, out third, out fourth);
+                ReadBools(out bool first, out bool second, out bool third, out bool fourth);
 
                 vector.x = (first ? 1 : -1) * ReadApproxFloat();
                 vector.y = (second ? 1 : -1) * ReadApproxFloat();
@@ -524,6 +503,190 @@ namespace GameWorkstore.NetworkLibrary
         public float ReadApproxFloat()
         {
             return ReadPackedUInt32() + ReadByte() / byteMaxValue1;
+        }
+
+        /// <summary>
+        /// ARRAYS
+        /// </summary>
+
+        public bool[] ReadBooleans()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<bool>();
+            var value = new bool[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadBoolean();
+            return value;
+        }
+
+        public byte[] ReadBytes()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<byte>();
+            var value = new byte[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadByte();
+            return value;
+        }
+
+        public char[] ReadChars()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<char>();
+            var value = new char[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadChar();
+            return value;
+        }
+
+        public ushort[] ReadUInt16s()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<ushort>();
+            var value = new ushort[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadUshort();
+            return value;
+        }
+
+        public uint[] ReadUInts()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<uint>();
+            var value = new uint[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadUInt();
+            return value;
+        }
+
+        public ulong[] ReadUlongs()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<ulong>();
+            var value = new ulong[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadUlong();
+            return value;
+        }
+
+        public sbyte[] ReadSBytes()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<sbyte>();
+            var value = new sbyte[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadSByte();
+            return value;
+        }
+
+        public short[] ReadShorts()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<short>();
+            var value = new short[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadShort();
+            return value;
+        }
+
+        public int[] ReadInts()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<int>();
+            var value = new int[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadInt();
+            return value;
+        }
+
+        public long[] ReadLongs()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<long>();
+            var value = new long[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadLong();
+            return value;
+        }
+
+        public string[] ReadStrings()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<string>();
+            var value = new string[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadString();
+            return value;
+        }
+
+        public NetworkInstanceId[] ReadNetworkIds()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<NetworkInstanceId>();
+            var value = new NetworkInstanceId[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadNetworkId();
+            return value;
+        }
+
+        public NetworkHash128[] ReadNetworkHash128s()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<NetworkHash128>();
+            var value = new NetworkHash128[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadNetworkHash128();
+            return value;
+        }
+
+        public Vector2[] ReadVector2s()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Vector2>();
+            var value = new Vector2[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadVector2();
+            return value;
+        }
+
+        public Vector3[] ReadVector3s()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Vector3>();
+            var value = new Vector3[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadVector3();
+            return value;
+        }
+
+        public Vector4[] ReadVector4s()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Vector4>();
+            var value = new Vector4[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadVector4();
+            return value;
+        }
+
+        public Vector2[] ReadVector2s(bool signed)
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Vector2>();
+            var value = new Vector2[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadVector2(signed);
+            return value;
+        }
+
+        public Vector3[] ReadVector3s(bool signed)
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Vector3>();
+            var value = new Vector3[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadVector3(signed);
+            return value;
+        }
+
+        public Vector4[] ReadVector4s(bool signed)
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Vector4>();
+            var value = new Vector4[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadVector4(signed);
+            return value;
+        }
+
+        public Quaternion[] ReadQuaternions()
+        {
+            var sz = ReadUshort();
+            if (sz == 0) return Array.Empty<Quaternion>();
+            var value = new Quaternion[sz];
+            for (int i = 0; i < sz; i++) value[i] = ReadQuaternion();
+            return value;
         }
     };
 }

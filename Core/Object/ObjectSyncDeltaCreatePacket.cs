@@ -21,8 +21,8 @@ namespace GameWorkstore.NetworkLibrary
             writer.Write(Position, true);
             writer.Write(Quaternion);
             writer.Write(Authority);
-            writer.WriteBytesAndSize(InternalParams, InternalParams.Length);
-            writer.WriteBytesAndSize(SharedParams, SharedParams.Length);
+            writer.Write(InternalParams);
+            writer.Write(SharedParams);
         }
 
         public override void Deserialize(NetReader reader)
@@ -32,8 +32,8 @@ namespace GameWorkstore.NetworkLibrary
             Position = reader.ReadVector3(true);
             Quaternion = reader.ReadQuaternion();
             Authority = reader.ReadBoolean();
-            InternalParams = reader.ReadBytesAndSize();
-            SharedParams = reader.ReadBytesAndSize();
+            InternalParams = reader.ReadBytes();
+            SharedParams = reader.ReadBytes();
         }
     }
 }

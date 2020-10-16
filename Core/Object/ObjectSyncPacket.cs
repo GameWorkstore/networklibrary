@@ -18,25 +18,11 @@ namespace GameWorkstore.NetworkLibrary
         public override void Serialize(NetWriter writer)
         {
             writer.Write(IsLast);
-            writer.Write((byte)ObjectName.Length);
-            writer.Write((byte)Authority.Length);
-            for (int i = 0; i < ObjectName.Length; i++)
-            {
-                writer.Write(ObjectName[i]);
-            }
-            for (int i = 0; i < ObjectId.Length; i++)
-            {
-                writer.Write(ObjectId[i]);
-            }
-            for (int i = 0; i < ObjectId.Length; i++)
-            {
-                writer.Write(Position[i], true);
-                writer.Write(Quaternion[i]);
-            }
-            for (int i = 0; i < Authority.Length; i++)
-            {
-                writer.Write(Authority[i]);
-            }
+            writer.Write(ObjectName);
+            writer.Write(ObjectId);
+            writer.Write(Position, true);
+            writer.Write(Quaternion);
+            writer.Write(Authority);
             //Internal
             writer.Write((byte)InternalParams.Length);
             for (int i = 0; i < InternalParams.Length; i++)
@@ -68,30 +54,11 @@ namespace GameWorkstore.NetworkLibrary
         public override void Deserialize(NetReader reader)
         {
             IsLast = reader.ReadBoolean();
-            int objectCount = reader.ReadByte();
-            int authorityCount = reader.ReadByte();
-            ObjectName = new NetworkHash128[objectCount];
-            ObjectId = new NetworkInstanceId[objectCount];
-            Position = new Vector3[objectCount];
-            Quaternion = new Quaternion[objectCount];
-            Authority = new NetworkInstanceId[authorityCount];
-            for (int i = 0; i < objectCount; i++)
-            {
-                ObjectName[i] = reader.ReadNetworkHash128();
-            }
-            for (int i = 0; i < objectCount; i++)
-            {
-                ObjectId[i] = reader.ReadNetworkId();
-            }
-            for (int i = 0; i < ObjectId.Length; i++)
-            {
-                Position[i] = reader.ReadVector3(true);
-                Quaternion[i] = reader.ReadQuaternion();
-            }
-            for (int i = 0; i < Authority.Length; i++)
-            {
-                Authority[i] = reader.ReadNetworkId();
-            }
+            ObjectName = reader.ReadNetworkHash128s();
+            ObjectId = reader.ReadNetworkIds();
+            Position = reader.ReadVector3s(true);
+            Quaternion = reader.ReadQuaternions();
+            Authority = reader.ReadNetworkIds();
             //Internal
             InternalParams = new byte[reader.ReadByte()][];
             for (int i = 0; i < InternalParams.Length; i++)

@@ -221,7 +221,7 @@ namespace GameWorkstore.NetworkLibrary
         /// Check if a given connectionId is the ours
         /// </summary>
         /// <param name="serverConnectionId">NetConnection ServerConnectionId</param>
-        public bool IsLocalPlayer(int serverConnectionId)
+        public bool IsLocalPlayer(short serverConnectionId)
         {
             return CONN.ServerConnectionId == serverConnectionId;
         }

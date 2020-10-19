@@ -32,9 +32,9 @@ namespace GameWorkstore.NetworkLibrary
 
     public class NetworkHandlers
     {
-        private readonly Dictionary<short, HighSpeedArray<NetworkHandlerBase>> _handlers = new Dictionary<short, HighSpeedArray<NetworkHandlerBase>>();
+        private readonly Dictionary<ushort, HighSpeedArray<NetworkHandlerBase>> _handlers = new Dictionary<ushort, HighSpeedArray<NetworkHandlerBase>>();
 
-        public void RegisterHandler<T>(short code, Action<T> function) where T : NetworkPacketBase, new()
+        public void RegisterHandler<T>(ushort code, Action<T> function) where T : NetworkPacketBase, new()
         {
             if (function == null)
             {
@@ -64,7 +64,7 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public bool UnregisterHandler<T>(short code, Action<T> function) where T : NetworkPacketBase, new()
+        public bool UnregisterHandler<T>(ushort code, Action<T> function) where T : NetworkPacketBase, new()
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {
@@ -77,7 +77,7 @@ namespace GameWorkstore.NetworkLibrary
             return false;
         }
 
-        internal bool Invoke(short code, NetMessage message)
+        internal bool Invoke(ushort code, NetMessage message)
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {

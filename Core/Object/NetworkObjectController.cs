@@ -102,7 +102,7 @@ namespace GameWorkstore.NetworkLibrary
         private void CompleteTriggerCreate(ObjectCreationStruct network, NetworkBaseBehaviour behaviour)
         {
             _dictionaryObjects.Add(network.ObjectId, new ObjectData { Object = behaviour, Hash = network.ObjectName });
-            behaviour.SetInstance(network.ObjectId, network.ObjectName, network.InternalParams, network.SharedParams, true, false, network.Authority == null, network.Authority == null ? -1 : network.Authority.ConnectionId);
+            behaviour.SetInstance(network.ObjectId, network.ObjectName, network.InternalParams, network.SharedParams, true, false, network.Authority == null, network.Authority == null ? -1 : network.Authority.LocalConnectionId);
             Object.DontDestroyOnLoad(behaviour.gameObject);
             OnObjectCreated.Invoke(behaviour);
             network.OnExternalCompleted.Invoke(behaviour);
@@ -232,7 +232,7 @@ namespace GameWorkstore.NetworkLibrary
             }
             //Default
             _dictionaryObjects.Add(network.ObjectId, new ObjectData { Object = behaviour, Hash = network.ObjectName });
-            behaviour.SetInstance(network.ObjectId, network.ObjectName, network.InternalParams, network.SharedParams, false, true, network.Authority != null, network.Authority == null ? -1 : network.Authority.ConnectionId);
+            behaviour.SetInstance(network.ObjectId, network.ObjectName, network.InternalParams, network.SharedParams, false, true, network.Authority != null, network.Authority == null ? -1 : network.Authority.LocalConnectionId);
             Object.DontDestroyOnLoad(behaviour.gameObject);
             OnObjectCreated.Invoke(behaviour);
         }

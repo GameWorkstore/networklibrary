@@ -62,24 +62,24 @@ namespace GameWorkstore.NetworkLibrary
 
         internal static string[] labels =
         {
-            "none",
-            "ObjectDestroy",
-            "Rpc",
-            "ObjectSpawn",
-            "Owner",
-            "Command",
-            "LocalPlayerTransform",
-            "SyncEvent",
-            "UpdateVars",
-            "SyncList",
-            "ObjectSpawnScene", // 10
-            "NetworkInfo",
-            "SpawnFinished",
-            "ObjectHide",
-            "CRC",
-            "LocalClientAuthority",
-            "LocalChildTransform",
-            "PeerClientAuthority",
+            "None",
+            nameof(ObjectDestroy),
+            nameof(Rpc),
+            nameof(ObjectSpawn),
+            nameof(Owner),
+            nameof(Command),
+            nameof(LocalPlayerTransform),
+            nameof(SyncEvent),
+            nameof(UpdateVars),
+            nameof(SyncList),
+            nameof(ObjectSpawnScene), // 10
+            nameof(NetworkInfo),
+            nameof(SpawnFinished),
+            nameof(ObjectHide),
+            nameof(CRC),
+            nameof(LocalClientAuthority),
+            nameof(LocalChildTransform),
+            nameof(PeerClientAuthority),
             "",
             "",
             "", // 20
@@ -94,30 +94,30 @@ namespace GameWorkstore.NetworkLibrary
             "",
             "", // 30
             "", // - SystemInternalHighest
-            "Connect", // 32,
-            "Disconnect",
-            "Error",
-            "Ready",
-            "NotReady",
-            "AddPlayer",
-            "RemovePlayer",
-            "Scene",
-            "Animation", // 40
-            "AnimationParams",
-            "AnimationTrigger",
-            "LobbyReadyToBegin",
-            "LobbySceneLoaded",
-            "LobbyAddPlayerFailed", // 45
-            "LobbyReturnToLobby", // 46
+            nameof(Connect), // 32,
+            nameof(Disconnect),
+            nameof(Error),
+            nameof(Ready),
+            nameof(NotReady),
+            nameof(AddPlayer),
+            nameof(RemovePlayer),
+            nameof(Scene),
+            nameof(Animation), // 40
+            nameof(AnimationParameters),
+            nameof(AnimationTrigger),
+            nameof(LobbyReadyToBegin),
+            nameof(LobbySceneLoaded),
+            nameof(LobbyAddPlayerFailed), // 45
+            nameof(LobbyReturnToLobby), // 46
         };
 
-        public static string TypeToString(short value)
+        public static string TypeToString(ushort value)
         {
             if (value < 0 || value > Highest)
             {
                 return string.Empty;
             }
-            string result =  labels[value];
+            string result = labels[value];
             if (string.IsNullOrEmpty(result))
             {
                 result = "[" + value + "]";
@@ -128,10 +128,10 @@ namespace GameWorkstore.NetworkLibrary
 
     public class NetMessage
     {
-        public short type;
-        public NetConnection conn;
-        public NetReader reader;
-        public int channelId;
+        public ushort Type;
+        public NetConnection Conn;
+        public NetReader Reader;
+        public int ChannelId;
 
         public static string Dump(byte[] payload, int sz)
         {
@@ -146,8 +146,8 @@ namespace GameWorkstore.NetworkLibrary
 
         public T ReadMessage<T>() where T : NetworkPacketBase, new()
         {
-            var msg = new T { conn = conn };
-            msg.Deserialize(reader);
+            var msg = new T { conn = Conn };
+            msg.Deserialize(Reader);
             return msg;
         }
     }
@@ -155,6 +155,6 @@ namespace GameWorkstore.NetworkLibrary
     public enum ChannelOption
     {
         MaxPendingBuffers = 1
-            // maybe add an InitialCapacity for Pending Buffers list if needed in the future
+        // maybe add an InitialCapacity for Pending Buffers list if needed in the future
     }
 }

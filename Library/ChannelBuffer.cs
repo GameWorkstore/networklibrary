@@ -6,60 +6,60 @@ namespace GameWorkstore.NetworkLibrary
 {
     class ChannelBuffer : IDisposable
     {
-        NetConnection m_Connection;
+        private readonly NetConnection _connection;
 
-        ChannelPacket m_CurrentPacket;
+        private ChannelPacket _currentPacket;
 
-        float m_LastFlushTime;
-        private byte m_ChannelId;
-        private int m_MaxPacketSize;
-        private bool m_IsReliable;
+        private float _lastFlushTime;
+        private readonly byte _channelId;
+        private readonly int _maxPacketSize;
+        private readonly bool _isReliable;
         bool m_IsBroken;
-        int m_MaxPendingPacketCount;
+        int _maxPendingPacketCount;
 
-        const int k_MaxFreePacketCount = 512; //  this is for all connections. maybe make this configurable
-        const int k_MaxPendingPacketCount = 16;  // this is per connection. each is around 1400 bytes (MTU)
+        const int _maxFreePacketCount = 512; //  this is for all connections. maybe make this configurable
+        const int _defaultMaxPendingPacketCount = 16;  // this is per connection. each is around 1400 bytes (MTU)
 
-        private Queue<ChannelPacket> m_PendingPackets;
-        static List<ChannelPacket> s_FreePackets;
-        static internal int pendingPacketCount; // this is across all connections. only used for profiler metrics.
+        private readonly Queue<ChannelPacket> _pendingPackets;
+        private static List<ChannelPacket> _freePackets;
+        internal static int pendingPacketCount; // this is across all connections. only used for profiler metrics.
 
         // config
         public float maxDelay = 0.01f;
 
         // stats
-        float m_LastBufferedMessageCountTimer = Time.realtimeSinceStartup;
+        private float _lastBufferedMessageCountTimer = Time.realtimeSinceStartup;
 
-        public int numMsgsOut { get; private set; }
-        public int numBufferedMsgsOut { get; private set; }
-        public int numBytesOut { get; private set; }
+        public int NumMsgsOut { get; private set; }
+        public int NumBufferedMsgsOut { get; private set; }
+        public int NumBytesOut { get; private set; }
 
-        public int numMsgsIn { get; private set; }
-        public int numBytesIn { get; private set; }
+        public int NumMsgsIn { get; private set; }
+        public int NumBytesIn { get; private set; }
 
-        public int numBufferedPerSecond { get; private set; }
-        public int lastBufferedPerSecond { get; private set; }
+        public int NumBufferedPerSecond { get; private set; }
+        public int LastBufferedPerSecond { get; private set; }
 
-        static NetWriter s_SendWriter = new NetWriter();
+        private static readonly NetWriter _sendWriter = new NetWriter();
 
         // We need to reserve some space for header information, this will be taken off the total channel buffer size
-        const int k_PacketHeaderReserveSize = 100;
+        private const int _packetHeaderReserveSize = 100;
 
         public ChannelBuffer(NetConnection conn, int bufferSize, byte cid, bool isReliable)
         {
-            m_Connection = conn;
-            m_MaxPacketSize = bufferSize - k_PacketHeaderReserveSize;
-            m_CurrentPacket = new ChannelPacket(m_MaxPacketSize, isReliable);
+            _connection = conn;
+            _maxPacketSize = bufferSize - _packetHeaderReserveSize;
+            _currentPacket = new ChannelPacket(_maxPacketSize, isReliable);
 
-            m_ChannelId = cid;
-            m_MaxPendingPacketCount = k_MaxPendingPacketCount;
-            m_IsReliable = isReliable;
+            _channelId = cid;
+            _maxPendingPacketCount = _defaultMaxPendingPacketCount;
+            _isReliable = isReliable;
             if (isReliable)
             {
-                m_PendingPackets = new Queue<ChannelPacket>();
-                if (s_FreePackets == null)
+                _pendingPackets = new Queue<ChannelPacket>();
+                if (_freePackets == null)
                 {
-                    s_FreePackets = new List<ChannelPacket>();
+                    _freePackets = new List<ChannelPacket>();
                 }
             }
         }
@@ -83,19 +83,19 @@ namespace GameWorkstore.NetworkLibrary
             {
                 if (disposing)
                 {
-                    if (m_PendingPackets != null)
+                    if (_pendingPackets != null)
                     {
-                        while (m_PendingPackets.Count > 0)
+                        while (_pendingPackets.Count > 0)
                         {
                             pendingPacketCount -= 1;
 
-                            ChannelPacket packet = m_PendingPackets.Dequeue();
-                            if (s_FreePackets.Count < k_MaxFreePacketCount)
+                            var packet = _pendingPackets.Dequeue();
+                            if (_freePackets.Count < _maxFreePacketCount)
                             {
-                                s_FreePackets.Add(packet);
+                                _freePackets.Add(packet);
                             }
                         }
-                        m_PendingPackets.Clear();
+                        _pendingPackets.Clear();
                     }
                 }
             }
@@ -108,17 +108,17 @@ namespace GameWorkstore.NetworkLibrary
             {
                 case ChannelOption.MaxPendingBuffers:
                     {
-                        if (!m_IsReliable)
+                        if (!_isReliable)
                         {
-                            if (LogFilter.logError) { Debug.LogError("Cannot set MaxPendingBuffers on unreliable channel " + m_ChannelId); }
+                            if (LogFilter.logError) { Debug.LogError("Cannot set MaxPendingBuffers on unreliable channel " + _channelId); }
                             return false;
                         }
-                        if (value < 0 || value >= k_MaxFreePacketCount)
+                        if (value < 0 || value >= _maxFreePacketCount)
                         {
-                            if (LogFilter.logError) { Debug.LogError("Invalid MaxPendingBuffers for channel " + m_ChannelId + ". Must be greater than zero and less than " + k_MaxFreePacketCount); }
+                            if (LogFilter.logError) { Debug.LogError("Invalid MaxPendingBuffers for channel " + _channelId + ". Must be greater than zero and less than " + _maxFreePacketCount); }
                             return false;
                         }
-                        m_MaxPendingPacketCount = value;
+                        _maxPendingPacketCount = value;
                         return true;
                     }
             }
@@ -127,17 +127,17 @@ namespace GameWorkstore.NetworkLibrary
 
         public void CheckInternalBuffer()
         {
-            if (Time.realtimeSinceStartup - m_LastFlushTime > maxDelay && !m_CurrentPacket.IsEmpty())
+            if (Time.realtimeSinceStartup - _lastFlushTime > maxDelay && !_currentPacket.IsEmpty())
             {
                 SendInternalBuffer();
-                m_LastFlushTime = Time.realtimeSinceStartup;
+                _lastFlushTime = Time.realtimeSinceStartup;
             }
 
-            if (Time.realtimeSinceStartup - m_LastBufferedMessageCountTimer > 1.0f)
+            if (Time.realtimeSinceStartup - _lastBufferedMessageCountTimer > 1.0f)
             {
-                lastBufferedPerSecond = numBufferedPerSecond;
-                numBufferedPerSecond = 0;
-                m_LastBufferedMessageCountTimer = Time.realtimeSinceStartup;
+                LastBufferedPerSecond = NumBufferedPerSecond;
+                NumBufferedPerSecond = 0;
+                _lastBufferedMessageCountTimer = Time.realtimeSinceStartup;
             }
         }
 
@@ -146,15 +146,15 @@ namespace GameWorkstore.NetworkLibrary
             return SendBytes(writer.AsArraySegment().Array, writer.AsArraySegment().Count);
         }
 
-        public bool Send(short msgType, NetworkPacketBase msg)
+        public bool Send(ushort msgType, NetworkPacketBase msg)
         {
             // build the stream
-            s_SendWriter.StartMessage(msgType);
-            msg.Serialize(s_SendWriter);
-            s_SendWriter.FinishMessage();
+            _sendWriter.StartMessage(msgType);
+            msg.Serialize(_sendWriter);
+            _sendWriter.FinishMessage();
 
-            numMsgsOut += 1;
-            return SendWriter(s_SendWriter);
+            NumMsgsOut += 1;
+            return SendWriter(_sendWriter);
         }
 
         internal bool SendBytes(byte[] bytes, int bytesToSend)
@@ -170,33 +170,33 @@ namespace GameWorkstore.NetworkLibrary
             }
 
             // for fragmented channels, m_MaxPacketSize is set to the max size of a fragmented packet, so anything higher than this should fail for any kind of channel.
-            if (bytesToSend > m_MaxPacketSize)
+            if (bytesToSend > _maxPacketSize)
             {
-                if (LogFilter.logError) { Debug.LogError("Failed to send big message of " + bytesToSend + " bytes. The maximum is " + m_MaxPacketSize + " bytes on this channel."); }
+                if (LogFilter.logError) { Debug.LogError("Failed to send big message of " + bytesToSend + " bytes. The maximum is " + _maxPacketSize + " bytes on this channel."); }
                 return false;
             }
 
-            if (!m_CurrentPacket.HasSpace(bytesToSend))
+            if (!_currentPacket.HasSpace(bytesToSend))
             {
-                if (m_IsReliable)
+                if (_isReliable)
                 {
-                    if (m_PendingPackets.Count == 0)
+                    if (_pendingPackets.Count == 0)
                     {
                         // nothing in the pending queue yet, just flush and write
-                        if (!m_CurrentPacket.SendToTransport(m_Connection, m_ChannelId))
+                        if (!_currentPacket.SendToTransport(_connection, _channelId))
                         {
                             QueuePacket();
                         }
-                        m_CurrentPacket.Write(bytes, bytesToSend);
+                        _currentPacket.Write(bytes, bytesToSend);
                         return true;
                     }
 
-                    if (m_PendingPackets.Count >= m_MaxPendingPacketCount)
+                    if (_pendingPackets.Count >= _maxPendingPacketCount)
                     {
                         if (!m_IsBroken)
                         {
                             // only log this once, or it will spam the log constantly
-                            if (LogFilter.logError) { Debug.LogError("ChannelBuffer buffer limit of " + m_PendingPackets.Count + " packets reached."); }
+                            if (LogFilter.logError) { Debug.LogError("ChannelBuffer buffer limit of " + _pendingPackets.Count + " packets reached."); }
                         }
                         m_IsBroken = true;
                         return false;
@@ -204,21 +204,21 @@ namespace GameWorkstore.NetworkLibrary
 
                     // calling SendToTransport here would write out-of-order data to the stream. just queue
                     QueuePacket();
-                    m_CurrentPacket.Write(bytes, bytesToSend);
+                    _currentPacket.Write(bytes, bytesToSend);
                     return true;
                 }
 
-                if (!m_CurrentPacket.SendToTransport(m_Connection, m_ChannelId))
+                if (!_currentPacket.SendToTransport(_connection, _channelId))
                 {
-                    if (LogFilter.logError) { Debug.Log("ChannelBuffer SendBytes no space on unreliable channel " + m_ChannelId); }
+                    if (LogFilter.logError) { Debug.Log("ChannelBuffer SendBytes no space on unreliable channel " + _channelId); }
                     return false;
                 }
 
-                m_CurrentPacket.Write(bytes, bytesToSend);
+                _currentPacket.Write(bytes, bytesToSend);
                 return true;
             }
 
-            m_CurrentPacket.Write(bytes, bytesToSend);
+            _currentPacket.Write(bytes, bytesToSend);
             if (maxDelay == 0.0f)
             {
                 return SendInternalBuffer();
@@ -229,8 +229,8 @@ namespace GameWorkstore.NetworkLibrary
         void QueuePacket()
         {
             pendingPacketCount += 1;
-            m_PendingPackets.Enqueue(m_CurrentPacket);
-            m_CurrentPacket = AllocPacket();
+            _pendingPackets.Enqueue(_currentPacket);
+            _currentPacket = AllocPacket();
         }
 
         ChannelPacket AllocPacket()
@@ -238,13 +238,13 @@ namespace GameWorkstore.NetworkLibrary
 #if UNITY_EDITOR
             NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIPending, "msg", pendingPacketCount);
 #endif
-            if (s_FreePackets.Count == 0)
+            if (_freePackets.Count == 0)
             {
-                return new ChannelPacket(m_MaxPacketSize, m_IsReliable);
+                return new ChannelPacket(_maxPacketSize, _isReliable);
             }
 
-            var packet = s_FreePackets[s_FreePackets.Count - 1];
-            s_FreePackets.RemoveAt(s_FreePackets.Count - 1);
+            var packet = _freePackets[_freePackets.Count - 1];
+            _freePackets.RemoveAt(_freePackets.Count - 1);
 
             packet.Reset();
             return packet;
@@ -255,12 +255,12 @@ namespace GameWorkstore.NetworkLibrary
 #if UNITY_EDITOR
             NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIPending, "msg", pendingPacketCount);
 #endif
-            if (s_FreePackets.Count >= k_MaxFreePacketCount)
+            if (_freePackets.Count >= _maxFreePacketCount)
             {
                 // just discard this packet, already tracking too many free packets
                 return;
             }
-            s_FreePackets.Add(packet);
+            _freePackets.Add(packet);
         }
 
         public bool SendInternalBuffer()
@@ -268,21 +268,21 @@ namespace GameWorkstore.NetworkLibrary
 #if UNITY_EDITOR
             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.LLAPIMsg, "msg", 1);
 #endif
-            if (m_IsReliable && m_PendingPackets.Count > 0)
+            if (_isReliable && _pendingPackets.Count > 0)
             {
                 // send until transport can take no more
-                while (m_PendingPackets.Count > 0)
+                while (_pendingPackets.Count > 0)
                 {
-                    var packet = m_PendingPackets.Dequeue();
-                    if (!packet.SendToTransport(m_Connection, m_ChannelId))
+                    var packet = _pendingPackets.Dequeue();
+                    if (!packet.SendToTransport(_connection, _channelId))
                     {
-                        m_PendingPackets.Enqueue(packet);
+                        _pendingPackets.Enqueue(packet);
                         break;
                     }
                     pendingPacketCount -= 1;
                     FreePacket(packet);
 
-                    if (m_IsBroken && m_PendingPackets.Count < (m_MaxPendingPacketCount / 2))
+                    if (m_IsBroken && _pendingPackets.Count < (_maxPendingPacketCount / 2))
                     {
                         if (LogFilter.logWarn) { Debug.LogWarning("ChannelBuffer recovered from overflow but data was lost."); }
                         m_IsBroken = false;
@@ -290,7 +290,7 @@ namespace GameWorkstore.NetworkLibrary
                 }
                 return true;
             }
-            return m_CurrentPacket.SendToTransport(m_Connection, m_ChannelId);
+            return _currentPacket.SendToTransport(_connection, _channelId);
         }
     }
 }

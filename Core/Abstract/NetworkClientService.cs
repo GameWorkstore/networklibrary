@@ -105,7 +105,7 @@ namespace GameWorkstore.NetworkLibrary
             if (CONN != null)
             {
                 CONN.Disconnect();
-                RemoveConnection(CONN.ConnectionId);
+                RemoveConnection(CONN.LocalConnectionId);
                 CONN = null;
             }
 
@@ -145,23 +145,25 @@ namespace GameWorkstore.NetworkLibrary
 
         public int GetRTT()
         {
-            return GetRTT(CONN.ConnectionId);
+            return GetRTT(CONN.LocalConnectionId);
         }
 
-        protected override void HandleConnection(int connectionId, byte error)
+        protected override void HandleConnection(short connectionId, byte error)
         {
-            Log("Connection started", DebugLevel.INFO);
+            Log("Preconnection started", DebugLevel.INFO);
             STATE = NetworkClientState.CONNECTED;
-            CONN = CreateConnection(connectionId);
+            CONN = CreateConnection(connectionId); //PreConnection
+            // set ServerConnectionId to unitialized, as it ins't right yet
+            CONN.ServerConnectionId = -1;
         }
 
-        protected override void HandleDisconnection(int connectionId, byte error)
+        protected override void HandleDisconnection(short connectionId, byte error)
         {
             Log("Disconnected", DebugLevel.INFO);
             Disconnect();
         }
 
-        protected override void HandleDataReceived(int connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
+        protected override void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
         {
             if (_connections.TryGetValue(connectionId, out NetConnection conn))
             {
@@ -191,6 +193,8 @@ namespace GameWorkstore.NetworkLibrary
         protected virtual void HandleAuthenticationRequest(AuthenticationRequestPacket packet)
         {
             Log("Authentication request from server.", DebugLevel.INFO);
+            // update server connection
+            CONN.ServerConnectionId = packet.ServerConnectionId;
             var response = new AuthenticationResponsePacket
             {
                 Payload = "default"
@@ -227,7 +231,7 @@ namespace GameWorkstore.NetworkLibrary
             if (!packet.IsLast) return;
 
             //client is connected!
-            Log("Connected:[ID:" + CONN.ConnectionId + "]", DebugLevel.INFO);
+            Log("Connected:[ID:" + CONN.LocalConnectionId + "]", DebugLevel.INFO);
             OnConnected.Invoke(CONN);
             OnConnect?.Invoke(true);
         }

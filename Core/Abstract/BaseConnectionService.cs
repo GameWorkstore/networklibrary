@@ -10,14 +10,14 @@ namespace GameWorkstore.NetworkLibrary
     {
         private EventService _eventService;
 
-        protected int SOCKETID;
+        protected short SOCKETID;
         protected int PORT = 8080;
         protected int MATCHSIZE = 8;
         protected int BOTSIZE = 0;
         protected NetworkHandlers _prehandlers = new NetworkHandlers();
         protected NetworkHandlers _handlers = new NetworkHandlers();
-        protected Dictionary<int, NetConnection> _preconnections = new Dictionary<int, NetConnection>();
-        protected Dictionary<int, NetConnection> _connections = new Dictionary<int, NetConnection>();
+        protected Dictionary<short, NetConnection> _preconnections = new Dictionary<short, NetConnection>();
+        protected Dictionary<short, NetConnection> _connections = new Dictionary<short, NetConnection>();
 
         private static int NETWORK_INITIALIZATION = 0;
         private static uint UNIQUEID = 1;
@@ -61,7 +61,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public override void Postprocess()
         {
-            RemoveHandler<NetworkAlivePacket>(IsAlive,true);
+            RemoveHandler<NetworkAlivePacket>(IsAlive, true);
             RemoveHandler<NetworkAlivePacket>(IsAlive);
             DestroyTransportLayer();
         }
@@ -73,20 +73,19 @@ namespace GameWorkstore.NetworkLibrary
             {
                 switch (evnt)
                 {
-                    case NetworkEventType.ConnectEvent: HandleConnection(outConnectionId, error); break;
+                    case NetworkEventType.ConnectEvent:
+                        HandleConnection((short)outConnectionId, error);
+                        break;
                     case NetworkEventType.DisconnectEvent:
-                        HandleDisconnection(outConnectionId, error);
+                        HandleDisconnection((short)outConnectionId, error);
                         //cancel process, because our socket was destroyed.
-                        if (!HasSocket())
-                        {
-                            return;
-                        }
+                        if (!HasSocket()) return;
                         break;
                     case NetworkEventType.DataEvent:
                         if (PING_SIMULATION)
-                            SimulateDataReceived(outConnectionId, outChannelId, ref buffer, receiveSize, error);
+                            SimulateDataReceived((short)outConnectionId, outChannelId, ref buffer, receiveSize, error);
                         else
-                            HandleDataReceived(outConnectionId, outChannelId, ref buffer, receiveSize, error);
+                            HandleDataReceived((short)outConnectionId, outChannelId, ref buffer, receiveSize, error);
                         break;
                     case NetworkEventType.Nothing: break;
                     default: Log("Unknown network message type received: " + evnt, DebugLevel.INFO); break;
@@ -140,7 +139,7 @@ namespace GameWorkstore.NetworkLibrary
                 return false;
             }
 
-            SOCKETID = NetworkTransport.AddHost(GetHostTopology(), port);
+            SOCKETID = (short)NetworkTransport.AddHost(GetHostTopology(), port);
             bool socketInitialized = HasSocket();
             if (socketInitialized)
             {
@@ -223,26 +222,26 @@ namespace GameWorkstore.NetworkLibrary
             return (NetworkError)error == NetworkError.Ok;
         }
 
-        protected NetConnection CreatePreconnection(int connectionId)
+        protected NetConnection CreatePreconnection(short connectionId)
         {
             var conn = new NetConnection(SOCKETID, connectionId, GetHostTopology(), SimulationTime(), _prehandlers);
             _preconnections.Add(connectionId, conn);
             return conn;
         }
 
-        protected bool RemovePreconnection(int connectionId)
+        protected bool RemovePreconnection(short connectionId)
         {
             return _preconnections.Remove(connectionId);
         }
 
-        protected NetConnection CreateConnection(int connectionId)
+        protected NetConnection CreateConnection(short connectionId)
         {
             var conn = new NetConnection(SOCKETID, connectionId, GetHostTopology(), SimulationTime(), _handlers);
             _connections.Add(connectionId, conn);
             return conn;
         }
 
-        protected bool RemoveConnection(int connectionId)
+        protected bool RemoveConnection(short connectionId)
         {
             return _connections.Remove(connectionId);
         }
@@ -270,27 +269,27 @@ namespace GameWorkstore.NetworkLibrary
             return _handlers.UnregisterHandler(packet.Code, function);
         }
 
-        protected abstract void HandleConnection(int connectionId, byte error);
-        protected abstract void HandleDisconnection(int connectionId, byte error);
-        protected abstract void HandleDataReceived(int connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error);
+        protected abstract void HandleConnection(short connectionId, byte error);
+        protected abstract void HandleDisconnection(short connectionId, byte error);
+        protected abstract void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error);
 
         public abstract void Log(string msg, DebugLevel level);
 
         public bool PING_SIMULATION = false;
         public int PING_SIMULATED = 0;
-        private Queue<DataReceived> _dataReceived = new Queue<DataReceived>();
+        private readonly Queue<DataReceived> _dataReceived = new Queue<DataReceived>();
 
         internal class DataReceived
         {
             internal float timestamp;
-            internal int connectionId;
+            internal short connectionId;
             internal int channelId;
             internal byte[] buffer;
             internal int receivedSize;
             internal byte error;
         }
 
-        private void SimulateDataReceived(int outConnectionId, int outChannelId, ref byte[] buffer, int outReceiveSize, byte error)
+        private void SimulateDataReceived(short outConnectionId, int outChannelId, ref byte[] buffer, int outReceiveSize, byte error)
         {
             if (!IsOk(error))
             {

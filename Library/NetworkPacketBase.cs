@@ -13,10 +13,10 @@ namespace GameWorkstore.NetworkLibrary
         // Serialize the contents of this message into the writer
         public abstract void Serialize(NetWriter writer);
 
-        public abstract short Code { get; }
+        public abstract ushort Code { get; }
     }
 
-    public enum ReservedBySystem
+    public enum ReservedBySystem : ushort
     {
         AuthenticationRequest = 1,
         AuthenticationResponse = 2,
@@ -29,14 +29,23 @@ namespace GameWorkstore.NetworkLibrary
 
     public class AuthenticationRequestPacket : NetworkPacketBase
     {
-        public override short Code { get { return (short)ReservedBySystem.AuthenticationRequest; } }
-        public override void Deserialize(NetReader reader) { }
-        public override void Serialize(NetWriter writer) { }
+        public override ushort Code { get { return (ushort)ReservedBySystem.AuthenticationRequest; } }
+        public short ServerConnectionId;
+        
+        public override void Deserialize(NetReader reader)
+        {
+            ServerConnectionId = reader.ReadShort();
+        }
+
+        public override void Serialize(NetWriter writer)
+        {
+            writer.Write(ServerConnectionId);
+        }
     }
 
     public class AuthenticationResponsePacket : NetworkPacketBase
     {
-        public override short Code { get { return (short)ReservedBySystem.AuthenticationResponse; } }
+        public override ushort Code { get { return (ushort)ReservedBySystem.AuthenticationResponse; } }
         public string Payload;
 
         public override void Deserialize(NetReader reader)
@@ -52,7 +61,7 @@ namespace GameWorkstore.NetworkLibrary
 
     public class NetworkAlivePacket : NetworkPacketBase
     {
-        public override short Code { get { return (short)ReservedBySystem.Alive; } }
+        public override ushort Code { get { return (ushort)ReservedBySystem.Alive; } }
         public override void Deserialize(NetReader reader) { }
         public override void Serialize(NetWriter writer) { }
     }

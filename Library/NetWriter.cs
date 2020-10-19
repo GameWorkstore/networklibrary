@@ -465,7 +465,7 @@ namespace GameWorkstore.NetworkLibrary
             _buffer.SeekZero();
         }
 
-        public void StartMessage(short msgType)
+        public void StartMessage(ushort msgType)
         {
             SeekZero();
 

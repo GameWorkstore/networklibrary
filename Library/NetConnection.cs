@@ -17,18 +17,20 @@ namespace GameWorkstore.NetworkLibrary
         private readonly NetMessage _netMessage = new NetMessage();
         private NetWriter _writer = new NetWriter();
         private NetworkHandlers _networkHandlers;
-        private readonly NetMessage _messageInfo = new NetMessage();
+        //private readonly NetMessage _messageInfo = new NetMessage();
         private const int _maxPacketLogSize = 150;
 
-        public int HostId = -1;
-        public int ConnectionId = -1;
+        public short HostId = -1;
+        public short LocalConnectionId = -1;
+        public short ServerConnectionId = -1;
         public float InitializedTime = 0;
         public float LastReceivedTime = 0;
         public bool DebugPackets = false;
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034")]
         public class PacketStat
         {
-            public short Code;
+            public ushort Code;
             public int Count;
             public int Bytes;
 
@@ -38,18 +40,19 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        internal Dictionary<short, PacketStat> PacketStats { get; } = new Dictionary<short, PacketStat>();
+        internal Dictionary<ushort, PacketStat> PacketStats { get; } = new Dictionary<ushort, PacketStat>();
 
 #if UNITY_EDITOR
-        private const int _maxPacketStats = 255; //the same as maximum message types
+        private const ushort _maxPacketStats = 255; //the same as maximum message types
 #endif
 
-        public NetConnection(int hostId, int connectionId, HostTopology hostTopology, float initializedTime, NetworkHandlers networkHandlers)
+        public NetConnection(short hostId, short localConnectionId, HostTopology hostTopology, float initializedTime, NetworkHandlers networkHandlers)
         {
             _writer = new NetWriter();
             _networkHandlers = networkHandlers;
             HostId = hostId;
-            ConnectionId = connectionId;
+            LocalConnectionId = localConnectionId;
+            ServerConnectionId = localConnectionId;
             InitializedTime = initializedTime;
 
             int numChannels = hostTopology.DefaultConfig.ChannelCount;
@@ -124,7 +127,7 @@ namespace GameWorkstore.NetworkLibrary
         public void Disconnect()
         {
             if (HostId < 0) return;
-            NetworkTransport.Disconnect(HostId, ConnectionId, out _);
+            NetworkTransport.Disconnect(HostId, LocalConnectionId, out _);
         }
 
         public void InitializeHandlers(NetworkHandlers handlers)
@@ -196,7 +199,7 @@ namespace GameWorkstore.NetworkLibrary
                 builder.AppendFormat("{0:X2}", bytes[i]);
                 if (i > _maxPacketLogSize) break;
             }
-            DebugMessege.Log("ConnectionSend con:" + ConnectionId + " bytes:" + size + " code:" + code + " " + builder, DebugLevel.INFO);
+            DebugMessege.Log("ConnectionSend con:" + LocalConnectionId + " bytes:" + size + " code:" + code + " " + builder, DebugLevel.INFO);
         }
 
         bool CheckChannel(int channelId)
@@ -217,7 +220,7 @@ namespace GameWorkstore.NetworkLibrary
         public void ResetStats()
         {
 #if UNITY_EDITOR
-            for (short i = 0; i < _maxPacketStats; i++)
+            for (ushort i = 0; i < _maxPacketStats; i++)
             {
                 if (PacketStats.ContainsKey(i))
                 {
@@ -254,28 +257,28 @@ namespace GameWorkstore.NetworkLibrary
             {
                 // the reader passed to user code has a copy of bytes from the real stream. user code never touches the real stream.
                 // this ensures it can never get out of sync if user code reads less or more than the real amount.
-                ushort sz = reader.ReadUshort();
-                short code = reader.ReadShort();
+                var size = reader.ReadUshort();
+                var code = reader.ReadUshort();
 
                 // create a reader just for this message
-                byte[] buffer = reader.ReadBytes(sz);
+                byte[] buffer = reader.ReadBytes(size);
                 NetReader packetReader = new NetReader(buffer);
 
                 if (DebugPackets)
                 {
                     StringBuilder msg = new StringBuilder();
-                    for (int i = 0; i < sz; i++)
+                    for (int i = 0; i < size; i++)
                     {
                         msg.AppendFormat("{0:X2}", buffer[i]);
                         if (i > _maxPacketLogSize) break;
                     }
-                    DebugMessege.Log("ConnectionRecv con:" + ConnectionId + " bytes:" + sz + " msgId:" + code + " " + msg, DebugLevel.INFO);
+                    DebugMessege.Log("ConnectionRecv con:" + LocalConnectionId + " bytes:" + size + " msgId:" + code + " " + msg, DebugLevel.INFO);
                 }
 
-                _netMessage.type = code;
-                _netMessage.reader = packetReader;
-                _netMessage.conn = this;
-                _netMessage.channelId = channelId;
+                _netMessage.Type = code;
+                _netMessage.Reader = packetReader;
+                _netMessage.Conn = this;
+                _netMessage.ChannelId = channelId;
 
                 if (_networkHandlers.Invoke(code, _netMessage))
                 {
@@ -292,9 +295,9 @@ namespace GameWorkstore.NetworkLibrary
                         else if (code == _osddp.Code)
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, UnityTransportTypes.ObjectDestroy, code.ToString() + ":" + code.GetType().Name, 1);
                         //else if (channelId > 2)
-                            //NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.UpdateVars, msgType.ToString() + ":" + msgType.GetType().Name, sz);
+                        //NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.UpdateVars, msgType.ToString() + ":" + msgType.GetType().Name, sz);
                         //else if (channelId > 1)
-                            //NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.SyncEvent, msgType.ToString() + ":" + msgType.GetType().Name, sz);
+                        //NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, MsgType.SyncEvent, msgType.ToString() + ":" + msgType.GetType().Name, sz);
                         else
                             NetworkDetailStats.IncrementStat(NetworkDetailStats.NetworkDirection.Incoming, UnityTransportTypes.Command, code.ToString() + ":" + code.GetType().Name, 1);
                     }
@@ -305,7 +308,7 @@ namespace GameWorkstore.NetworkLibrary
                     {
                         stat = PacketStats[code];
                         stat.Count += 1;
-                        stat.Bytes += sz;
+                        stat.Bytes += size;
                     }
                     else
                     {
@@ -313,7 +316,7 @@ namespace GameWorkstore.NetworkLibrary
                         {
                             Code = code,
                             Count = 1,
-                            Bytes = sz
+                            Bytes = size
                         };
                         PacketStats[code] = stat;
                     }
@@ -321,7 +324,7 @@ namespace GameWorkstore.NetworkLibrary
                 }
                 else
                 {
-                    DebugMessege.Log("Unknown message ID " + code + " connId:" + ConnectionId, DebugLevel.ERROR);
+                    DebugMessege.Log("Unknown message ID " + code + " connId:" + LocalConnectionId, DebugLevel.ERROR);
                     break;
                 }
             }
@@ -336,10 +339,10 @@ namespace GameWorkstore.NetworkLibrary
 
             foreach (ChannelBuffer channel in _channels)
             {
-                numMsgs += channel.numMsgsOut;
-                numBufferedMsgs += channel.numBufferedMsgsOut;
-                numBytes += channel.numBytesOut;
-                lastBufferedPerSecond += channel.lastBufferedPerSecond;
+                numMsgs += channel.NumMsgsOut;
+                numBufferedMsgs += channel.NumBufferedMsgsOut;
+                numBytes += channel.NumBytesOut;
+                lastBufferedPerSecond += channel.LastBufferedPerSecond;
             }
         }
 
@@ -350,14 +353,14 @@ namespace GameWorkstore.NetworkLibrary
 
             foreach (ChannelBuffer channel in _channels)
             {
-                numMsgs += channel.numMsgsIn;
-                numBytes += channel.numBytesIn;
+                numMsgs += channel.NumMsgsIn;
+                numBytes += channel.NumBytesIn;
             }
         }
 
         public override string ToString()
         {
-            return string.Format("hostId: {0} connectionId: {1} channel count: {2}", HostId, ConnectionId, (_channels != null ? _channels.Length : 0));
+            return string.Format("hostId: {0} connectionId: {1} channel count: {2}", HostId, LocalConnectionId, (_channels != null ? _channels.Length : 0));
         }
 
         public virtual void TransportReceive(byte[] bytes, int numBytes, int channelId)
@@ -370,7 +373,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public virtual bool TransportSend(byte[] bytes, int numBytes, int channelId, out byte error)
         {
-            return NetworkTransport.Send(HostId, ConnectionId, channelId, bytes, numBytes, out error);
+            return NetworkTransport.Send(HostId, LocalConnectionId, channelId, bytes, numBytes, out error);
         }
     }
 }

@@ -2,7 +2,7 @@
 {
     internal class ObjectSyncNetworkTimePacket : NetworkPacketBase
     {
-        public override short Code { get { return (short)ReservedBySystem.ObjectSyncNetworkTimePacket; } }
+        public override ushort Code { get { return (ushort)ReservedBySystem.ObjectSyncNetworkTimePacket; } }
 
         internal float NetworkTime;
         

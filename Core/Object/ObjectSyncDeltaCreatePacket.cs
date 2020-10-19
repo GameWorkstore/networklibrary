@@ -4,7 +4,7 @@ namespace GameWorkstore.NetworkLibrary
 {
     internal class ObjectSyncDeltaCreatePacket : NetworkPacketBase
     {
-        public override short Code { get { return (short)ReservedBySystem.ObjectSyncDeltaCreatePacket; } }
+        public override ushort Code { get { return (ushort)ReservedBySystem.ObjectSyncDeltaCreatePacket; } }
 
         internal NetworkInstanceId ObjectId;
         internal NetworkHash128 ObjectName;

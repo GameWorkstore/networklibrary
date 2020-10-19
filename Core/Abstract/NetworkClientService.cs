@@ -217,6 +217,15 @@ namespace GameWorkstore.NetworkLibrary
             return GetRTT() / (2 * 1000f);
         }
 
+        /// <summary>
+        /// Check if a given connectionId is the ours
+        /// </summary>
+        /// <param name="serverConnectionId">NetConnection ServerConnectionId</param>
+        public bool IsLocalPlayer(int serverConnectionId)
+        {
+            return CONN.ServerConnectionId == serverConnectionId;
+        }
+
         public void SetClientNetworkDifference(float serverTime)
         {
             _diffs.Add(serverTime - SimulationTime());

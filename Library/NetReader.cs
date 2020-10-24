@@ -1,5 +1,6 @@
 using GameWorkstore.Patterns;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -510,21 +511,21 @@ namespace GameWorkstore.NetworkLibrary
         /// ARRAYS
         /// </summary>
 
-        private T[] ReadArray<T>(Func<T> read)
+        public T[] ReadArray<T>(Func<T> readT)
         {
             var sz = ReadUshort();
             if (sz == 0) return Array.Empty<T>();
             var value = new T[sz];
-            for (int i = 0; i < sz; i++) value[i] = read();
+            for (int i = 0; i < sz; i++) value[i] = readT();
             return value;
         }
 
-        private T[] ReadArray<T>(bool signed, Func<bool, T> read)
+        public T[] ReadArray<T>(bool signed, Func<bool, T> readT)
         {
             var sz = ReadUshort();
             if (sz == 0) return Array.Empty<T>();
             var value = new T[sz];
-            for (int i = 0; i < sz; i++) value[i] = read(signed);
+            for (int i = 0; i < sz; i++) value[i] = readT(signed);
             return value;
         }
 
@@ -553,20 +554,20 @@ namespace GameWorkstore.NetworkLibrary
         /// HIGHSPEEDARRAYS
         /// </summary>
 
-        private void ReadArray<T>(HighSpeedArray<T> outArray, Func<T> Read)
+        public void ReadArray<T>(HighSpeedArray<T> outArray, Func<T> readT)
         {
             var sz = ReadUshort();
             outArray.Clear();
             outArray.SetCapacity(sz);
-            for (int i = 0; i < sz; i++) outArray.Add(Read());
+            for (int i = 0; i < sz; i++) outArray.Add(readT());
         }
 
-        private void ReadArray<T>(HighSpeedArray<T> outArray, bool signed, Func<bool, T> Read)
+        public void ReadArray<T>(HighSpeedArray<T> outArray, bool signed, Func<bool, T> readT)
         {
             var sz = ReadUshort();
             outArray.Clear();
             outArray.SetCapacity(sz);
-            for (int i = 0; i < sz; i++) outArray.Add(Read(signed));
+            for (int i = 0; i < sz; i++) outArray.Add(readT(signed));
         }
 
         public void ReadBooleans(HighSpeedArray<bool> outArray) { ReadArray(outArray, ReadBoolean); }
@@ -590,5 +591,20 @@ namespace GameWorkstore.NetworkLibrary
         public void ReadVector2s(HighSpeedArray<Vector2> outArray, bool signed) { ReadArray(outArray, signed, ReadVector2); }
         public void ReadVector3s(HighSpeedArray<Vector3> outArray, bool signed) { ReadArray(outArray, signed, ReadVector3); }
         public void ReadVector4s(HighSpeedArray<Vector4> outArray, bool signed) { ReadArray(outArray, signed, ReadVector4); }
+
+        //dictionaries
+        public void ReadDictionary<T, U>(Dictionary<T, U> outDictionary,Func<T> readT, Func<U> readU)
+        {
+            var sz = ReadUshort();
+            outDictionary.Clear();
+            for (int i = 0; i < sz; i++)
+            {
+                var t = readT();
+                var u = readU();
+                outDictionary.Add(t, u);
+            }
+        }
+
+
     };
 }

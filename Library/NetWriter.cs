@@ -1,5 +1,6 @@
 using GameWorkstore.Patterns;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -555,21 +556,21 @@ namespace GameWorkstore.NetworkLibrary
         /// ARRAYS
         /// </summary>
 
-        private void Write<T>(T[] array, Action<T> write)
+        public void Write<T>(T[] array, Action<T> writeT)
         {
             Write((ushort)array.Length);
             for (int i = 0; i < array.Length; i++)
             {
-                write(array[i]);
+                writeT(array[i]);
             }
         }
 
-        private void Write<T>(T[] array, bool signed, Action<T, bool> write)
+        public void Write<T>(T[] array, bool signed, Action<T, bool> writeT)
         {
             Write((ushort)array.Length);
             for (int i = 0; i < array.Length; i++)
             {
-                write(array[i], signed);
+                writeT(array[i], signed);
             }
         }
 
@@ -598,21 +599,21 @@ namespace GameWorkstore.NetworkLibrary
         /// HIGHSPEEDARRAYS
         /// </summary>
 
-        private void Write<T>(HighSpeedArray<T> array, Action<T> write)
+        public void Write<T>(HighSpeedArray<T> array, Action<T> writeT)
         {
             Write((ushort)array.Count);
             for (int i = 0; i < array.Count; i++)
             {
-                write(array[i]);
+                writeT(array[i]);
             }
         }
 
-        private void Write<T>(HighSpeedArray<T> array, bool signed, Action<T,bool> write)
+        public void Write<T>(HighSpeedArray<T> array, bool signed, Action<T,bool> writeT)
         {
             Write((ushort)array.Count);
             for (int i = 0; i < array.Count; i++)
             {
-                write(array[i], signed);
+                writeT(array[i], signed);
             }
         }
 
@@ -636,5 +637,16 @@ namespace GameWorkstore.NetworkLibrary
         public void Write(HighSpeedArray<Vector2> array, bool signed) { Write(array, signed, Write); }
         public void Write(HighSpeedArray<Vector3> array, bool signed) { Write(array, signed, Write); }
         public void Write(HighSpeedArray<Vector4> array, bool signed) { Write(array, signed, Write); }
+
+        //dictionaries
+        public void Write<T,U>(Dictionary<T,U> dictionary, Action<T> writeT, Action<U> writeU)
+        {
+            Write((ushort)dictionary.Count);
+            foreach(var pair in dictionary)
+            {
+                writeT(pair.Key);
+                writeU(pair.Value);
+            }
+        }
     };
 }

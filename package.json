@@ -1,12 +1,12 @@
 {
   "name": "com.gameworkstore.networklibrary",
   "displayName": "GameWorkstore NetLibrary",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "unity": "2020.1",
   "keywords": [ "net", "network", "multiplayer", "gameserver" ],
   "description": "Network Library for Unity Projects based on old UNET!",
   "icon": ".icon.png",
   "dependencies": {
-    "com.gameworkstore.patterns": "1.0.1"
+    "com.gameworkstore.patterns": "1.0.2"
   }
 }

@@ -12,6 +12,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected short SOCKETID;
         protected int PORT = 8080;
+        protected int PRECONNECTIONSIZE = 8;
         protected int MATCHSIZE = 8;
         protected int BOTSIZE = 0;
         protected NetworkHandlers _prehandlers = new NetworkHandlers();
@@ -21,7 +22,6 @@ namespace GameWorkstore.NetworkLibrary
 
         private static int NETWORK_INITIALIZATION = 0;
         private static uint UNIQUEID = 1;
-        private static int PRECONNECTIONMAX = 8;
 
         public byte CHANNEL_STATE_COUNT = 0;
         public byte CHANNEL_RELIABLE_ORDERED { get; private set; }
@@ -30,13 +30,13 @@ namespace GameWorkstore.NetworkLibrary
         public byte CHANNEL_UNRELIABLE { get; private set; }
         public byte[] CHANNEL_STATECHANNEL { get; private set; }
 
-        private int outConnectionId;
-        private int outChannelId;
+        private int _outConnectionId;
+        private int _outChannelId;
         private const int bufferSize = 1024;
         private int receiveSize;
-        byte[] buffer = new byte[1024];
-        byte error;
-        NetworkEventType evnt;
+        private byte[] buffer = new byte[1024];
+        private byte error;
+        private NetworkEventType evnt;
 
         private float _lastStayAliveSolver = 0;
         private const float _queueStayAliveTime = 1f;
@@ -68,24 +68,28 @@ namespace GameWorkstore.NetworkLibrary
 
         protected virtual void UpdateConnection()
         {
-            if (!HasSocket()) return;
-            while ((evnt = NetworkTransport.ReceiveFromHost(SOCKETID, out outConnectionId, out outChannelId, buffer, bufferSize, out receiveSize, out error)) != NetworkEventType.Nothing)
+            while (HasSocket())
             {
+                evnt = NetworkTransport.ReceiveFromHost(SOCKETID, out _outConnectionId, out _outChannelId, buffer, bufferSize, out receiveSize, out error);
+                //if nothing to process, break
+                if (evnt == NetworkEventType.Nothing) break;
+
                 switch (evnt)
                 {
                     case NetworkEventType.ConnectEvent:
-                        HandleConnection((short)outConnectionId, error);
+                        HandleConnection((short)_outConnectionId, error);
                         break;
                     case NetworkEventType.DisconnectEvent:
-                        HandleDisconnection((short)outConnectionId, error);
-                        //cancel process, because our socket was destroyed.
-                        if (!HasSocket()) return;
-                        break;
+                        HandleDisconnection((short)_outConnectionId, error);
+                        //clear simulation
+                        _dataReceived.Clear();
+                        //stop
+                        return;
                     case NetworkEventType.DataEvent:
                         if (PING_SIMULATION)
-                            SimulateDataReceived((short)outConnectionId, outChannelId, ref buffer, receiveSize, error);
+                            SimulateDataReceived((short)_outConnectionId, _outChannelId, ref buffer, receiveSize, error);
                         else
-                            HandleDataReceived((short)outConnectionId, outChannelId, ref buffer, receiveSize, error);
+                            HandleDataReceived((short)_outConnectionId, _outChannelId, ref buffer, receiveSize, error);
                         break;
                     case NetworkEventType.Nothing: break;
                     default: Log("Unknown network message type received: " + evnt, DebugLevel.INFO); break;
@@ -202,7 +206,7 @@ namespace GameWorkstore.NetworkLibrary
                 CHANNEL_STATECHANNEL[i] = config.AddChannel(QosType.StateUpdate);
             }
 
-            return new HostTopology(config, MATCHSIZE + PRECONNECTIONMAX);
+            return new HostTopology(config, MATCHSIZE + PRECONNECTIONSIZE);
         }
 
         internal static NetworkInstanceId GetUniqueId()

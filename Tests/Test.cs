@@ -1,4 +1,5 @@
-﻿using GameWorkstore.Patterns;
+﻿#if UNITY_EDITOR
+using GameWorkstore.Patterns;
 using UnityEngine;
 
 namespace GameWorkstore.NetworkLibrary.Tests
@@ -25,3 +26,5 @@ namespace GameWorkstore.NetworkLibrary.Tests
         }
     }
 }
+
+#endif

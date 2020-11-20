@@ -31,7 +31,7 @@ namespace GameWorkstore.NetworkLibrary
             ObjectName = reader.ReadNetworkHash128();
             Position = reader.ReadVector3(true);
             Quaternion = reader.ReadQuaternion();
-            Authority = reader.ReadBoolean();
+            Authority = reader.ReadBool();
             InternalParams = reader.ReadBytes();
             SharedParams = reader.ReadBytes();
         }

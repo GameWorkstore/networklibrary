@@ -77,10 +77,10 @@ namespace GameWorkstore.NetworkLibrary
                 switch (evnt)
                 {
                     case NetworkEventType.ConnectEvent:
-                        HandleConnection((short)_outConnectionId, error);
+                        HandleConnect((short)_outConnectionId, error);
                         break;
                     case NetworkEventType.DisconnectEvent:
-                        HandleDisconnection((short)_outConnectionId, error);
+                        HandleDisconnect((short)_outConnectionId, error);
                         //clear simulation
                         _dataReceived.Clear();
                         //stop
@@ -273,8 +273,8 @@ namespace GameWorkstore.NetworkLibrary
             return _handlers.UnregisterHandler(packet.Code, function);
         }
 
-        protected abstract void HandleConnection(short connectionId, byte error);
-        protected abstract void HandleDisconnection(short connectionId, byte error);
+        protected abstract void HandleConnect(short connectionId, byte error);
+        protected abstract void HandleDisconnect(short connectionId, byte error);
         protected abstract void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error);
 
         public abstract void Log(string msg, DebugLevel level);

@@ -77,17 +77,13 @@ namespace GameWorkstore.NetworkLibrary
                         Log("Start Connection from Socket: " + SOCKETID, DebugLevel.INFO);
                         break;
                     default:
-                        Log("Start Connection from Socket failed: " + SOCKETID + "Error:" + (NetworkError)error, DebugLevel.ERROR);
-                        OnConnect?.Invoke(false);
-                        OnConnectError.Invoke();
+                        HandleConnection(false, "Start Connection from Socket failed: " + SOCKETID + "Error:" + (NetworkError)error);
                         break;
                 }
             }
             else
             {
-                Log("Failed to Socket Open.", DebugLevel.ERROR);
-                OnConnect?.Invoke(false);
-                OnConnectError.Invoke();
+                HandleConnection(false, "Failed to Socket Open.");
             }
         }
 
@@ -148,7 +144,7 @@ namespace GameWorkstore.NetworkLibrary
             return GetRTT(CONN.LocalConnectionId);
         }
 
-        protected override void HandleConnection(short connectionId, byte error)
+        protected override void HandleConnect(short connectionId, byte error)
         {
             Log("Preconnection started", DebugLevel.INFO);
             STATE = NetworkClientState.CONNECTED;
@@ -157,7 +153,7 @@ namespace GameWorkstore.NetworkLibrary
             CONN.ServerConnectionId = -1;
         }
 
-        protected override void HandleDisconnection(short connectionId, byte error)
+        protected override void HandleDisconnect(short connectionId, byte error)
         {
             Log("Disconnected", DebugLevel.INFO);
             Disconnect();
@@ -202,6 +198,26 @@ namespace GameWorkstore.NetworkLibrary
             Send(response, CHANNEL_RELIABLE);
         }
 
+        /// <summary>
+        /// Dispatched when connected successfully or failed
+        /// </summary>
+        /// <param name="connected">if connection was successful.</param>
+        /// <param name="messege">error or acceptance.</param>
+        protected virtual void HandleConnection(bool connected, string messege)
+        {
+            OnConnect?.Invoke(true);
+            if (connected)
+            {
+                if(messege != null) Log(messege, DebugLevel.INFO);
+                OnConnected.Invoke(CONN);
+            }
+            else
+            {
+                if(messege != null) Log(messege, DebugLevel.ERROR);
+                OnConnectError.Invoke();
+            }
+        }
+
         private void SyncNetworkTime(ObjectSyncNetworkTimePacket time)
         {
             SetClientNetworkDifference(time.NetworkTime);
@@ -240,9 +256,7 @@ namespace GameWorkstore.NetworkLibrary
             if (!packet.IsLast) return;
 
             //client is connected!
-            Log("Connected:[ID:" + CONN.LocalConnectionId + "]", DebugLevel.INFO);
-            OnConnected.Invoke(CONN);
-            OnConnect?.Invoke(true);
+            HandleConnection(true, "Connected:[ID:" + CONN.LocalConnectionId + "]");
         }
 
         private void SyncDeltaDestroy(ObjectSyncDeltaDestroyPacket packet)

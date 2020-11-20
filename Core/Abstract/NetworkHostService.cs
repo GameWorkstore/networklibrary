@@ -157,7 +157,7 @@ namespace GameWorkstore.NetworkLibrary
             return sucess;
         }
 
-        protected override void HandleConnection(short connectionId, byte error)
+        protected override void HandleConnect(short connectionId, byte error)
         {
             if (!IsOk(error))
             {
@@ -248,7 +248,7 @@ namespace GameWorkstore.NetworkLibrary
             OnSocketConnection.Invoke(conn);
         }
 
-        protected override void HandleDisconnection(short connectionId, byte error)
+        protected override void HandleDisconnect(short connectionId, byte error)
         {
             // connection
             if (_connections.TryGetValue(connectionId, out NetConnection conn))
@@ -352,7 +352,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool DisconnectPlayer(short connectionId)
         {
-            HandleDisconnection(connectionId, 0);
+            HandleDisconnect(connectionId, 0);
             return NetworkTransport.Disconnect(SOCKETID, connectionId, out _);
         }
 

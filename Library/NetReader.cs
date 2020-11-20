@@ -66,22 +66,22 @@ namespace GameWorkstore.NetworkLibrary
             byte a1 = ReadByte();
             if (a0 >= 241 && a0 <= 248)
             {
-                return (UInt32)(240 + 256 * (a0 - 241) + a1);
+                return (uint)(240 + 256 * (a0 - 241) + a1);
             }
             byte a2 = ReadByte();
             if (a0 == 249)
             {
-                return (UInt32)(2288 + 256 * a1 + a2);
+                return (uint)(2288 + 256 * a1 + a2);
             }
             byte a3 = ReadByte();
             if (a0 == 250)
             {
-                return a1 + (((UInt32)a2) << 8) + (((UInt32)a3) << 16);
+                return a1 + (((uint)a2) << 8) + (((uint)a3) << 16);
             }
             byte a4 = ReadByte();
             if (a0 >= 251)
             {
-                return a1 + (((UInt32)a2) << 8) + (((UInt32)a3) << 16) + (((UInt32)a4) << 24);
+                return a1 + (((uint)a2) << 8) + (((uint)a3) << 16) + (((uint)a4) << 24);
             }
             throw new IndexOutOfRangeException("ReadPackedUInt32() failure: " + a0);
         }
@@ -96,50 +96,50 @@ namespace GameWorkstore.NetworkLibrary
             byte a1 = ReadByte();
             if (a0 >= 241 && a0 <= 248)
             {
-                return 240 + 256 * (a0 - ((UInt64)241)) + a1;
+                return 240 + 256 * (a0 - ((ulong)241)) + a1;
             }
             byte a2 = ReadByte();
             if (a0 == 249)
             {
-                return 2288 + (((UInt64)256) * a1) + a2;
+                return 2288 + (((ulong)256) * a1) + a2;
             }
             byte a3 = ReadByte();
             if (a0 == 250)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16);
+                return a1 + (((ulong)a2) << 8) + (((ulong)a3) << 16);
             }
             byte a4 = ReadByte();
             if (a0 == 251)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24);
+                return a1 + (((ulong)a2) << 8) + (((ulong)a3) << 16) + (((ulong)a4) << 24);
             }
 
 
             byte a5 = ReadByte();
             if (a0 == 252)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24) + (((UInt64)a5) << 32);
+                return a1 + (((ulong)a2) << 8) + (((ulong)a3) << 16) + (((ulong)a4) << 24) + (((ulong)a5) << 32);
             }
 
 
             byte a6 = ReadByte();
             if (a0 == 253)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24) + (((UInt64)a5) << 32) + (((UInt64)a6) << 40);
+                return a1 + (((ulong)a2) << 8) + (((ulong)a3) << 16) + (((ulong)a4) << 24) + (((ulong)a5) << 32) + (((ulong)a6) << 40);
             }
 
 
             byte a7 = ReadByte();
             if (a0 == 254)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24) + (((UInt64)a5) << 32) + (((UInt64)a6) << 40) + (((UInt64)a7) << 48);
+                return a1 + (((ulong)a2) << 8) + (((ulong)a3) << 16) + (((ulong)a4) << 24) + (((ulong)a5) << 32) + (((ulong)a6) << 40) + (((ulong)a7) << 48);
             }
 
 
             byte a8 = ReadByte();
             if (a0 == 255)
             {
-                return a1 + (((UInt64)a2) << 8) + (((UInt64)a3) << 16) + (((UInt64)a4) << 24) + (((UInt64)a5) << 32) + (((UInt64)a6) << 40) + (((UInt64)a7) << 48) + (((UInt64)a8) << 56);
+                return a1 + (((ulong)a2) << 8) + (((ulong)a3) << 16) + (((ulong)a4) << 24) + (((ulong)a5) << 32) + (((ulong)a6) << 40) + (((ulong)a7) << 48) + (((ulong)a8) << 56);
             }
             throw new IndexOutOfRangeException("ReadPackedUInt64() failure: " + a0);
         }
@@ -297,7 +297,7 @@ namespace GameWorkstore.NetworkLibrary
             return (char)_buffer.ReadByte();
         }
 
-        public bool ReadBoolean()
+        public bool ReadBool()
         {
             int value = _buffer.ReadByte();
             return value == 1;
@@ -508,99 +508,123 @@ namespace GameWorkstore.NetworkLibrary
         }
 
         /// <summary>
+        /// STATICS 
+        /// </summary>
+
+        public static bool StaticReadBool(NetReader reader) { return reader.ReadBool(); }
+        public static byte StaticReadByte(NetReader reader) { return reader.ReadByte(); }
+        public static char StaticReadChar(NetReader reader) { return reader.ReadChar(); }
+        public static ushort StaticReadUshort(NetReader reader) { return reader.ReadUshort(); }
+        public static uint StaticReadUInt(NetReader reader) { return reader.ReadUInt(); }
+        public static ulong StaticReadUlong(NetReader reader) { return reader.ReadUlong(); }
+        public static sbyte StaticReadSByte(NetReader reader) { return reader.ReadSByte(); }
+        public static short StaticReadShort(NetReader reader) { return reader.ReadShort(); }
+        public static int StaticReadInt(NetReader reader) { return reader.ReadInt(); }
+        public static long StaticReadLong(NetReader reader) { return reader.ReadLong(); }
+        public static string StaticReadString(NetReader reader) { return reader.ReadString(); }
+        public static NetworkInstanceId StaticReadNetworkId(NetReader reader) { return reader.ReadNetworkId(); }
+        public static NetworkHash128 StaticReadNetworkHash128(NetReader reader) { return reader.ReadNetworkHash128(); }
+        public static Vector2 StaticReadVector2(NetReader reader) { return reader.ReadVector2(); }
+        public static Vector3 StaticReadVector3(NetReader reader) { return reader.ReadVector3(); }
+        public static Vector4 StaticReadVector4(NetReader reader) { return reader.ReadVector4(); }
+        public static Quaternion StaticReadQuaternion(NetReader reader) { return reader.ReadQuaternion(); }
+        public static Vector2 StaticReadVector2(NetReader reader, bool signed) { return reader.ReadVector2(signed); }
+        public static Vector3 StaticReadVector3(NetReader reader, bool signed) { return reader.ReadVector3(signed); }
+        public static Vector4 StaticReadVector4(NetReader reader, bool signed) { return reader.ReadVector4(signed); }
+
+        /// <summary>
         /// ARRAYS
         /// </summary>
 
-        public T[] ReadArray<T>(Func<T> readT)
+        public T[] ReadArray<T>(Func<NetReader, T> readT)
         {
             var sz = ReadUshort();
             if (sz == 0) return Array.Empty<T>();
             var value = new T[sz];
-            for (int i = 0; i < sz; i++) value[i] = readT();
+            for (int i = 0; i < sz; i++) value[i] = readT(this);
             return value;
         }
 
-        public T[] ReadArray<T>(bool signed, Func<bool, T> readT)
+        public T[] ReadArray<T>(bool signed, Func<NetReader, bool, T> readT)
         {
             var sz = ReadUshort();
             if (sz == 0) return Array.Empty<T>();
             var value = new T[sz];
-            for (int i = 0; i < sz; i++) value[i] = readT(signed);
+            for (int i = 0; i < sz; i++) value[i] = readT(this, signed);
             return value;
         }
 
-        public bool[] ReadBooleans() { return ReadArray(ReadBoolean); }
-        public byte[] ReadBytes() { return ReadArray(ReadByte); }
-        public char[] ReadChars() { return ReadArray(ReadChar); }
-        public ushort[] ReadUshorts() { return ReadArray(ReadUshort); }
-        public uint[] ReadUInts() { return ReadArray(ReadUInt); }
-        public ulong[] ReadUlongs() { return ReadArray(ReadUlong); }
-        public sbyte[] ReadSBytes() { return ReadArray(ReadSByte); }
-        public short[] ReadShorts() { return ReadArray(ReadShort); }
-        public int[] ReadInts() { return ReadArray(ReadInt); }
-        public long[] ReadLongs() { return ReadArray(ReadLong); }
-        public string[] ReadStrings() { return ReadArray(ReadString); }
-        public NetworkInstanceId[] ReadNetworkIds() { return ReadArray(ReadNetworkId); }
-        public NetworkHash128[] ReadNetworkHash128s() { return ReadArray(ReadNetworkHash128); }
-        public Vector2[] ReadVector2s() { return ReadArray(ReadVector2); }
-        public Vector3[] ReadVector3s() { return ReadArray(ReadVector3); }
-        public Vector4[] ReadVector4s() { return ReadArray(ReadVector4); }
-        public Quaternion[] ReadQuaternions() { return ReadArray(ReadQuaternion); }
-        public Vector2[] ReadVector2s(bool signed) { return ReadArray(signed, ReadVector2); }
-        public Vector3[] ReadVector3s(bool signed) { return ReadArray(signed, ReadVector3); }
-        public Vector4[] ReadVector4s(bool signed) { return ReadArray(signed, ReadVector4); }
+        public bool[] ReadBooleans() { return ReadArray(StaticReadBool); }
+        public byte[] ReadBytes() { return ReadArray(StaticReadByte); }
+        public char[] ReadChars() { return ReadArray(StaticReadChar); }
+        public ushort[] ReadUshorts() { return ReadArray(StaticReadUshort); }
+        public uint[] ReadUInts() { return ReadArray(StaticReadUInt); }
+        public ulong[] ReadUlongs() { return ReadArray(StaticReadUlong); }
+        public sbyte[] ReadSBytes() { return ReadArray(StaticReadSByte); }
+        public short[] ReadShorts() { return ReadArray(StaticReadShort); }
+        public int[] ReadInts() { return ReadArray(StaticReadInt); }
+        public long[] ReadLongs() { return ReadArray(StaticReadLong); }
+        public string[] ReadStrings() { return ReadArray(StaticReadString); }
+        public NetworkInstanceId[] ReadNetworkIds() { return ReadArray(StaticReadNetworkId); }
+        public NetworkHash128[] ReadNetworkHash128s() { return ReadArray(StaticReadNetworkHash128); }
+        public Vector2[] ReadVector2s() { return ReadArray(StaticReadVector2); }
+        public Vector3[] ReadVector3s() { return ReadArray(StaticReadVector3); }
+        public Vector4[] ReadVector4s() { return ReadArray(StaticReadVector4); }
+        public Quaternion[] ReadQuaternions() { return ReadArray(StaticReadQuaternion); }
+        public Vector2[] ReadVector2s(bool signed) { return ReadArray(signed, StaticReadVector2); }
+        public Vector3[] ReadVector3s(bool signed) { return ReadArray(signed, StaticReadVector3); }
+        public Vector4[] ReadVector4s(bool signed) { return ReadArray(signed, StaticReadVector4); }
 
         /// <summary>
         /// HIGHSPEEDARRAYS
         /// </summary>
 
-        public void ReadArray<T>(HighSpeedArray<T> outArray, Func<T> readT)
+        public void ReadArray<T>(HighSpeedArray<T> outArray, Func<NetReader, T> readT)
         {
             var sz = ReadUshort();
             outArray.Clear();
             outArray.SetCapacity(sz);
-            for (int i = 0; i < sz; i++) outArray.Add(readT());
+            for (int i = 0; i < sz; i++) outArray.Add(readT(this));
         }
 
-        public void ReadArray<T>(HighSpeedArray<T> outArray, bool signed, Func<bool, T> readT)
+        public void ReadArray<T>(HighSpeedArray<T> outArray, bool signed, Func<NetReader, bool, T> readT)
         {
             var sz = ReadUshort();
             outArray.Clear();
             outArray.SetCapacity(sz);
-            for (int i = 0; i < sz; i++) outArray.Add(readT(signed));
+            for (int i = 0; i < sz; i++) outArray.Add(readT(this, signed));
         }
 
-        public void ReadBooleans(HighSpeedArray<bool> outArray) { ReadArray(outArray, ReadBoolean); }
-        public void ReadBytes(HighSpeedArray<byte> outArray) { ReadArray(outArray, ReadByte); }
-        public void ReadChars(HighSpeedArray<char> outArray) { ReadArray(outArray, ReadChar); }
-        public void ReadUInt16s(HighSpeedArray<ushort> outArray) { ReadArray(outArray, ReadUshort); }
-        public void ReadUInts(HighSpeedArray<uint> outArray) { ReadArray(outArray, ReadUInt); }
-        public void ReadUlongs(HighSpeedArray<ulong> outArray) { ReadArray(outArray, ReadUlong); }
-
-        public void ReadSBytes(HighSpeedArray<sbyte> outArray) { ReadArray(outArray, ReadSByte); }
-        public void ReadShorts(HighSpeedArray<short> outArray) { ReadArray(outArray, ReadShort); }
-        public void ReadInts(HighSpeedArray<int> outArray) { ReadArray(outArray, ReadInt); }
-        public void ReadLongs(HighSpeedArray<long> outArray) { ReadArray(outArray, ReadLong); }
-        public void ReadStrings(HighSpeedArray<string> outArray) { ReadArray(outArray, ReadString); }
-        public void ReadNetworkIds(HighSpeedArray<NetworkInstanceId> outArray) { ReadArray(outArray, ReadNetworkId); }
-        public void ReadNetworkHash128s(HighSpeedArray<NetworkHash128> outArray) { ReadArray(outArray, ReadNetworkHash128); }
-        public void ReadVector2s(HighSpeedArray<Vector2> outArray) { ReadArray(outArray, ReadVector2); }
-        public void ReadVector3s(HighSpeedArray<Vector3> outArray) { ReadArray(outArray, ReadVector3); }
-        public void ReadVector4s(HighSpeedArray<Vector4> outArray) { ReadArray(outArray, ReadVector4); }
-        public void ReadQuaternions(HighSpeedArray<Quaternion> outArray) { ReadArray(outArray, ReadQuaternion); }
-        public void ReadVector2s(HighSpeedArray<Vector2> outArray, bool signed) { ReadArray(outArray, signed, ReadVector2); }
-        public void ReadVector3s(HighSpeedArray<Vector3> outArray, bool signed) { ReadArray(outArray, signed, ReadVector3); }
-        public void ReadVector4s(HighSpeedArray<Vector4> outArray, bool signed) { ReadArray(outArray, signed, ReadVector4); }
+        public void ReadBooleans(HighSpeedArray<bool> outArray) { ReadArray(outArray, StaticReadBool); }
+        public void ReadBytes(HighSpeedArray<byte> outArray) { ReadArray(outArray, StaticReadByte); }
+        public void ReadChars(HighSpeedArray<char> outArray) { ReadArray(outArray, StaticReadChar); }
+        public void ReadUInt16s(HighSpeedArray<ushort> outArray) { ReadArray(outArray, StaticReadUshort); }
+        public void ReadUInts(HighSpeedArray<uint> outArray) { ReadArray(outArray, StaticReadUInt); }
+        public void ReadUlongs(HighSpeedArray<ulong> outArray) { ReadArray(outArray, StaticReadUlong); }
+        public void ReadSBytes(HighSpeedArray<sbyte> outArray) { ReadArray(outArray, StaticReadSByte); }
+        public void ReadShorts(HighSpeedArray<short> outArray) { ReadArray(outArray, StaticReadShort); }
+        public void ReadInts(HighSpeedArray<int> outArray) { ReadArray(outArray, StaticReadInt); }
+        public void ReadLongs(HighSpeedArray<long> outArray) { ReadArray(outArray, StaticReadLong); }
+        public void ReadStrings(HighSpeedArray<string> outArray) { ReadArray(outArray, StaticReadString); }
+        public void ReadNetworkIds(HighSpeedArray<NetworkInstanceId> outArray) { ReadArray(outArray, StaticReadNetworkId); }
+        public void ReadNetworkHash128s(HighSpeedArray<NetworkHash128> outArray) { ReadArray(outArray, StaticReadNetworkHash128); }
+        public void ReadVector2s(HighSpeedArray<Vector2> outArray) { ReadArray(outArray, StaticReadVector2); }
+        public void ReadVector3s(HighSpeedArray<Vector3> outArray) { ReadArray(outArray, StaticReadVector3); }
+        public void ReadVector4s(HighSpeedArray<Vector4> outArray) { ReadArray(outArray, StaticReadVector4); }
+        public void ReadQuaternions(HighSpeedArray<Quaternion> outArray) { ReadArray(outArray, StaticReadQuaternion); }
+        public void ReadVector2s(HighSpeedArray<Vector2> outArray, bool signed) { ReadArray(outArray, signed, StaticReadVector2); }
+        public void ReadVector3s(HighSpeedArray<Vector3> outArray, bool signed) { ReadArray(outArray, signed, StaticReadVector3); }
+        public void ReadVector4s(HighSpeedArray<Vector4> outArray, bool signed) { ReadArray(outArray, signed, StaticReadVector4); }
 
         //dictionaries
-        public void ReadDictionary<T, U>(Dictionary<T, U> outDictionary,Func<T> readT, Func<U> readU)
+        public void ReadDictionary<T, U>(Dictionary<T, U> outDictionary, Func<NetReader,T> readT, Func<NetReader,U> readU)
         {
             var sz = ReadUshort();
             outDictionary.Clear();
             for (int i = 0; i < sz; i++)
             {
-                var t = readT();
-                var u = readU();
+                var t = readT(this);
+                var u = readU(this);
                 outDictionary.Add(t, u);
             }
         }

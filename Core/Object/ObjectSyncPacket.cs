@@ -53,7 +53,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public override void Deserialize(NetReader reader)
         {
-            IsLast = reader.ReadBoolean();
+            IsLast = reader.ReadBool();
             ObjectName = reader.ReadNetworkHash128s();
             ObjectId = reader.ReadNetworkIds();
             Position = reader.ReadVector3s(true);

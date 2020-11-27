@@ -1,11 +1,11 @@
-# Network Library
+# Game Workstore Network Library
 
 Network Library for Unity projects based on old UNET! The transport layer will be updated for a better one when unity drops support for LLAPI, or earlier.
 Use it your own risk!
 
 # How to install
 
-At package.json, add these 2 lines of code:
+At package.json, add these lines of code:
 > "com.gameworkstore.networklibrary": "https://github.com/GameWorkstore/networklibrary.git"
 
 > "com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git"

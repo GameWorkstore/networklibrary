@@ -6,13 +6,14 @@ Use it your own risk!
 # How to install
 
 At package.json, add these lines of code:
-> "com.gameworkstore.networklibrary": "https://github.com/GameWorkstore/networklibrary.git"
+> "com.gameworkstore.networklibrary": "https://github.com/GameWorkstore/networklibrary.git?path=Assets/Package"
 
-> "com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git"
+> "com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git?path=Assets/Package"
 
 And wait for unity to download and compile the package.
 
-for update package for a newer version, click in [Help->PackageUpdate->GameWorkstore.NetworkLibrary]
+for update package for a newer version, install UpmGitExtension and update on [ Window > Package Manager ]!
+> https://github.com/mob-sakai/UpmGitExtension
 
 # Contributions
 

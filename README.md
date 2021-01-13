@@ -6,9 +6,9 @@ Use it your own risk!
 # How to install
 
 At package.json, add these lines of code:
-> "com.gameworkstore.networklibrary": "https://github.com/GameWorkstore/networklibrary.git?path=Assets/Package"
+> "com.gameworkstore.networklibrary": "git://github.com/GameWorkstore/networklibrary.git?path=Assets/Package"
 
-> "com.gameworkstore.patterns": "https://github.com/GameWorkstore/patterns.git?path=Assets/Package"
+> "com.gameworkstore.patterns": "git://github.com/GameWorkstore/patterns.git?path=Assets/Package"
 
 And wait for unity to download and compile the package.
 

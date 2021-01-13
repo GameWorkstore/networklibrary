@@ -146,6 +146,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public T ReadMessage<T>() where T : NetworkPacketBase, new()
         {
+            Reader.SeekZero();
             var msg = new T { conn = Conn };
             msg.Deserialize(Reader);
             return msg;

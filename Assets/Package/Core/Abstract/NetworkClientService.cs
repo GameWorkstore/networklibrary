@@ -63,6 +63,10 @@ namespace GameWorkstore.NetworkLibrary
             {
                 return;
             }
+            
+            //reset networkDifference
+            _diffs.Clear();
+            networkDifference = 0;
 
             if (OpenSocket())
             {

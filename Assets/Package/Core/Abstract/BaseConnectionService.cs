@@ -20,7 +20,7 @@ namespace GameWorkstore.NetworkLibrary
         protected Dictionary<short, NetConnection> _preconnections = new Dictionary<short, NetConnection>();
         protected Dictionary<short, NetConnection> _connections = new Dictionary<short, NetConnection>();
 
-        private static int NETWORK_INITIALIZATION = 0;
+        private static int NETWORK_INITIALIZATION;
         private static uint UNIQUEID = 1;
 
         public byte CHANNEL_STATE_COUNT = 0;
@@ -38,7 +38,7 @@ namespace GameWorkstore.NetworkLibrary
         private byte error;
         private NetworkEventType evnt;
 
-        private float _lastStayAliveSolver = 0;
+        private float _lastStayAliveSolver;
         private const float _queueStayAliveTime = 1f;
         private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
         private DataReceived _current;

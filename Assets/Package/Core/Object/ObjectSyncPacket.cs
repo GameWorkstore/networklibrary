@@ -6,7 +6,7 @@ namespace GameWorkstore.NetworkLibrary
     {
         public override ushort Code { get { return (ushort)ReservedBySystem.ObjectSyncPacket; } }
 
-        internal bool IsLast = false;
+        internal bool IsLast;
         internal NetworkHash128[] ObjectName = System.Array.Empty<NetworkHash128>();
         internal NetworkInstanceId[] ObjectId = System.Array.Empty<NetworkInstanceId>();
         internal NetworkInstanceId[] Authority = System.Array.Empty<NetworkInstanceId>();

@@ -14,7 +14,7 @@ namespace GameWorkstore.NetworkLibrary
         private NetworkClientState STATE;
         private NetworkClientObjectController _objects;
 
-        private float networkDifference = 0;
+        private float networkDifference;
         private readonly List<float> _diffs = new List<float>();
 
         public override void Preprocess()
@@ -91,16 +91,19 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public void Disconnect() { Disconnect(null); }
+        public void Disconnect(Action onDisconnection = null)
+        {
+            DisconnectInternal(false,onDisconnection);
+        }
 
-        public void Disconnect(Action onDisconnection)
+        private void DisconnectInternal(bool isLostConnection, Action onDisconnection)
         {
             if (STATE != NetworkClientState.CONNECTING && STATE != NetworkClientState.CONNECTED)
             {
                 return;
             }
-
-            Log("Disconnecting from Server: " + SOCKETID, DebugLevel.INFO);
+            
+            Log( isLostConnection? "Connection Lost from Server: " + SOCKETID : "Disconnecting from Server: " + SOCKETID, DebugLevel.INFO);
 
             if (CONN != null)
             {
@@ -115,7 +118,8 @@ namespace GameWorkstore.NetworkLibrary
             //Remove All Objects
             _objects.DestroyAllObjects();
 
-            OnDisconnection.Invoke();
+            if (isLostConnection) OnConnectionLost.Invoke();
+            
             onDisconnection?.Invoke();
         }
 
@@ -159,13 +163,12 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void HandleDisconnect(short connectionId, byte error)
         {
-            Log("Disconnected", DebugLevel.INFO);
-            Disconnect();
+            DisconnectInternal(true, null);
         }
 
         protected override void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
         {
-            if (_connections.TryGetValue(connectionId, out NetConnection conn))
+            if (_connections.TryGetValue(connectionId, out var conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
             }
@@ -289,11 +292,11 @@ namespace GameWorkstore.NetworkLibrary
         }
 
         #region EVENTS
-        public Signal<NetConnection> OnConnected = new Signal<NetConnection>();
-        public Signal OnConnectError = new Signal();
-        public Signal OnDisconnection = new Signal();
-        public Signal<NetworkBaseBehaviour> OnObjectCreated = new Signal<NetworkBaseBehaviour>();
-        public Signal<NetworkBaseBehaviour> OnObjectDestroyed = new Signal<NetworkBaseBehaviour>();
+        public Signal<NetConnection> OnConnected;
+        public Signal OnConnectError;
+        public Signal OnConnectionLost;
+        public Signal<NetworkBaseBehaviour> OnObjectCreated;
+        public Signal<NetworkBaseBehaviour> OnObjectDestroyed;
         #endregion
     }
 

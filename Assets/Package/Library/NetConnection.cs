@@ -24,8 +24,8 @@ namespace GameWorkstore.NetworkLibrary
         public short HostId = -1;
         public short LocalConnectionId = -1;
         public short ServerConnectionId = -1;
-        public float InitializedTime = 0;
-        public float LastReceivedTime = 0;
+        public float InitializedTime;
+        public float LastReceivedTime;
         public bool DebugPackets = false;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034")]

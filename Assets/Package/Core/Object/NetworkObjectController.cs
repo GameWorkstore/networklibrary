@@ -25,8 +25,8 @@ namespace GameWorkstore.NetworkLibrary
 
     internal class NetworkServerObjectController : NetworkObjectController
     {
-        internal Signal<NetworkBaseBehaviour> OnObjectCreated = new Signal<NetworkBaseBehaviour>();
-        internal Signal<NetworkBaseBehaviour> OnObjectDestroyed = new Signal<NetworkBaseBehaviour>();
+        internal Signal<NetworkBaseBehaviour> OnObjectCreated;
+        internal Signal<NetworkBaseBehaviour> OnObjectDestroyed;
 
         private const int MAXIMUM_OBJECT_POOL_PER_PACKAGE = 20;
         private List<NetworkHash128>    _cookingObjectName  = new List<NetworkHash128>();
@@ -135,8 +135,8 @@ namespace GameWorkstore.NetworkLibrary
 
     internal class NetworkClientObjectController : NetworkObjectController
     {
-        internal Signal<NetworkBaseBehaviour> OnObjectCreated = new Signal<NetworkBaseBehaviour>();
-        internal Signal<NetworkBaseBehaviour> OnObjectDestroyed = new Signal<NetworkBaseBehaviour>();
+        internal Signal<NetworkBaseBehaviour> OnObjectCreated;
+        internal Signal<NetworkBaseBehaviour> OnObjectDestroyed;
         private List<NetworkInstanceId> _lateDestroy = new List<NetworkInstanceId>();
 
         ObjectHandlers handler;
@@ -297,12 +297,12 @@ namespace GameWorkstore.NetworkLibrary
         public Quaternion Rotation;
         public byte[] InternalParams;
         public byte[] SharedParams;
-        public Signal<NetworkBaseBehaviour> OnExternalCompleted = new Signal<NetworkBaseBehaviour>();
+        public Signal<NetworkBaseBehaviour> OnExternalCompleted;
     }
 
     public class ObjectCreationData
     {
         public ObjectCreationStruct network = new ObjectCreationStruct();
-        public Signal<ObjectCreationStruct, NetworkBaseBehaviour> OnInternalCompleted = new Signal<ObjectCreationStruct, NetworkBaseBehaviour>();
+        public Signal<ObjectCreationStruct, NetworkBaseBehaviour> OnInternalCompleted;
     }
 }

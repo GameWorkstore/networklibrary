@@ -13,7 +13,7 @@ namespace GameWorkstore.NetworkLibrary
         private NetworkServerObjectController _objects;
 
         private const float _queueSolverTime = 1 / 18f; //Amount of QueueMesseges per Second
-        private float _lastQueueSolver = 0;
+        private float _lastQueueSolver;
         private List<QPacketClass> _classes;
 
         protected bool USENETWORKOBJECTCONTROLLER = true;
@@ -478,10 +478,10 @@ namespace GameWorkstore.NetworkLibrary
         }
 
         #region EVENTS
-        public Signal<NetConnection> OnSocketConnection = new Signal<NetConnection>();
-        public Signal<NetConnection> OnSocketDisconnection = new Signal<NetConnection>();
-        public Signal<NetworkBaseBehaviour> OnObjectCreated = new Signal<NetworkBaseBehaviour>();
-        public Signal<NetworkBaseBehaviour> OnObjectDestroyed = new Signal<NetworkBaseBehaviour>();
+        public Signal<NetConnection> OnSocketConnection;
+        public Signal<NetConnection> OnSocketDisconnection;
+        public Signal<NetworkBaseBehaviour> OnObjectCreated;
+        public Signal<NetworkBaseBehaviour> OnObjectDestroyed;
         #endregion
     }
 

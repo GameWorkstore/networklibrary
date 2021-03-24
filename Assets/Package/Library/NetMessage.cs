@@ -111,7 +111,7 @@ namespace GameWorkstore.NetworkLibrary
             nameof(LobbyReturnToLobby), // 46
         };
 
-        public static string TypeToString(ushort value)
+        public static string TypeToString(int value)
         {
             if (value < 0 || value > Highest)
             {
@@ -128,7 +128,7 @@ namespace GameWorkstore.NetworkLibrary
 
     public class NetMessage
     {
-        public ushort Type;
+        public int Type;
         public NetConnection Conn;
         public NetReader Reader;
         public int ChannelId;

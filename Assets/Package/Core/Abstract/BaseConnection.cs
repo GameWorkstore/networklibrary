@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using GameWorkstore.Patterns;
+using Google.Protobuf;
 
 namespace GameWorkstore.NetworkLibrary
 {
-    public abstract class BaseConnectionService : IService
+    public abstract class BaseConnection
     {
         private EventService _eventService;
 
@@ -36,14 +37,24 @@ namespace GameWorkstore.NetworkLibrary
         private int receiveSize;
         private byte[] buffer = new byte[1024];
         private byte error;
-        private NetworkEventType evnt;
+        private NetworkEventType _evt;
 
         private float _lastStayAliveSolver;
         private const float _queueStayAliveTime = 1f;
         private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
         private DataReceived _current;
 
-        public override void Preprocess()
+        public BaseConnection()
+        {
+            Preprocess();
+        }
+
+        ~BaseConnection()
+        {
+            Postprocess();
+        }
+
+        protected virtual void Preprocess()
         {
             Application.runInBackground = true;
             _eventService = ServiceProvider.GetService<EventService>();
@@ -57,24 +68,24 @@ namespace GameWorkstore.NetworkLibrary
 #endif
         }
 
-        private static void IsAlive(NetworkAlivePacket evt) { }
-
-        public override void Postprocess()
+        protected virtual void Postprocess()
         {
             RemoveHandler<NetworkAlivePacket>(IsAlive, true);
             RemoveHandler<NetworkAlivePacket>(IsAlive);
             DestroyTransportLayer();
         }
 
+        private static void IsAlive(NetworkAlivePacket evt) { }
+
         protected virtual void UpdateConnection()
         {
             while (HasSocket())
             {
-                evnt = NetworkTransport.ReceiveFromHost(SOCKETID, out _outConnectionId, out _outChannelId, buffer, bufferSize, out receiveSize, out error);
+                _evt = NetworkTransport.ReceiveFromHost(SOCKETID, out _outConnectionId, out _outChannelId, buffer, bufferSize, out receiveSize, out error);
                 //if nothing to process, break
-                if (evnt == NetworkEventType.Nothing) break;
+                if (_evt == NetworkEventType.Nothing) break;
 
-                switch (evnt)
+                switch (_evt)
                 {
                     case NetworkEventType.ConnectEvent:
                         HandleConnect((short)_outConnectionId, error);
@@ -92,7 +103,7 @@ namespace GameWorkstore.NetworkLibrary
                             HandleDataReceived((short)_outConnectionId, _outChannelId, ref buffer, receiveSize, error);
                         break;
                     case NetworkEventType.Nothing: break;
-                    default: Log("Unknown network message type received: " + evnt, DebugLevel.INFO); break;
+                    default: Log("Unknown network message type received: " + _evt, DebugLevel.INFO); break;
                 }
             }
 
@@ -252,25 +263,74 @@ namespace GameWorkstore.NetworkLibrary
 
         public void AddHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
         {
-            var packet = new T();
+            var hash = NetworkPacketExtensions.Code<T>();
             if (prehandler)
             {
-                _prehandlers.RegisterHandler(packet.Code, function);
+                _prehandlers.RegisterHandler(hash, function);
             }
             else
             {
-                _handlers.RegisterHandler(packet.Code, function);
+                _handlers.RegisterHandler(hash, function);
+            }
+        }
+
+        public bool ContainsHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
+        {
+            var code = NetworkPacketExtensions.Code<T>();
+            if(prehandler)
+            {
+                return _prehandlers.ContainsHandler(code, function);
+            }
+            else
+            {
+                return _handlers.ContainsHandler(code, function);
             }
         }
 
         public bool RemoveHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
         {
-            var packet = new T();
+            var code = NetworkPacketExtensions.Code<T>();
             if (prehandler)
             {
-                return _prehandlers.UnregisterHandler(packet.Code, function);
+                return _prehandlers.UnregisterHandler(code, function);
             }
-            return _handlers.UnregisterHandler(packet.Code, function);
+            return _handlers.UnregisterHandler(code, function);
+        }
+
+        public void AddProtoHandler<T>(Action<T> function, bool prehandler = false) where T : IMessage<T>, new()
+        {
+            var code = ProtobufPacketExtensions.Code<T>();
+            if(prehandler)
+            {
+                _prehandlers.RegisterProtoHandler(code, function);
+            }
+            else
+            {
+                _handlers.RegisterProtoHandler(code, function);
+            }
+        }
+
+        public bool ContainsProtoHandler<T>(Action<T> function, bool prehandler = false) where T : IMessage<T>, new()
+        {
+            var code = ProtobufPacketExtensions.Code<T>();
+            if(prehandler)
+            {
+                return _prehandlers.ContainsProtoHandler(code, function);
+            }
+            else
+            {
+                return _handlers.ContainsProtoHandler(code, function);
+            }
+        }
+        
+        public bool RemoveProtoHandler<T>(Action<T> function, bool prehandler = false) where T : IMessage<T>, new()
+        {
+            var code = ProtobufPacketExtensions.Code<T>();
+            if(prehandler)
+            {
+                return _prehandlers.UnregisterProtoHandler(code, function);
+            }
+            return _handlers.UnregisterProtoHandler(code, function);
         }
 
         protected abstract void HandleConnect(short connectionId, byte error);

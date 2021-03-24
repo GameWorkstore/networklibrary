@@ -3,8 +3,6 @@ namespace GameWorkstore.NetworkLibrary
 {
     internal class ObjectSyncDeltaDestroyPacket : NetworkPacketBase
     {
-        public override ushort Code { get { return (ushort)ReservedBySystem.ObjectSyncDeltaDestroyPacket; } }
-
         internal NetworkInstanceId ObjectId;
 
         public override void Serialize(NetWriter writer)

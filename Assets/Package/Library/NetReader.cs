@@ -628,7 +628,5 @@ namespace GameWorkstore.NetworkLibrary
                 outDictionary.Add(t, u);
             }
         }
-
-
     };
 }

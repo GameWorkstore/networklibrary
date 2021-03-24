@@ -1,7 +1,9 @@
 {
     "name": "GameWorkstore.NetworkLibrary",
+    "rootNamespace": "",
     "references": [
-        "GameWorkstore.Patterns"
+        "GameWorkstore.Patterns",
+        "GameWorkstore.Google.Protobuf"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

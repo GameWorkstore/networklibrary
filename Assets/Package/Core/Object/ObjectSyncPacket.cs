@@ -4,7 +4,7 @@ namespace GameWorkstore.NetworkLibrary
 {
     internal class ObjectSyncPacket : NetworkPacketBase
     {
-        public override ushort Code { get { return (ushort)ReservedBySystem.ObjectSyncPacket; } }
+        //public override ushort Code { get { return (ushort)ReservedBySystem.ObjectSyncPacket; } }
 
         internal bool IsLast;
         internal NetworkHash128[] ObjectName = System.Array.Empty<NetworkHash128>();

@@ -411,14 +411,14 @@ namespace GameWorkstore.NetworkLibrary
             _buffer.SeekZero();
         }
 
-        public void StartMessage(ushort msgType)
+        public void StartMessage(int msgType)
         {
             SeekZero();
 
             // two bytes for size, will be filled out in FinishMessage
             _buffer.WriteByte2(0, 0);
 
-            // two bytes for message type
+            // four bytes for message type
             Write(msgType);
         }
 

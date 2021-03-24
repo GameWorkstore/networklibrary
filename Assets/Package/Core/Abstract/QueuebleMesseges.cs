@@ -28,9 +28,9 @@ namespace GameWorkstore.NetworkLibrary
                 foreach(var pair in unique)
                 {
                     if (GeometryUtility.TestPlanesAABB(camera.Planes, pair.Value.bounds))
-                        pair.Value.markedTime = BaseConnectionService.SimulationTime();
+                        pair.Value.markedTime = BaseConnection.SimulationTime();
 
-                    pair.Value.markedToSend = (BaseConnectionService.SimulationTime() - pair.Value.markedTime) < maximumLostVisibilityTime;
+                    pair.Value.markedToSend = (BaseConnection.SimulationTime() - pair.Value.markedTime) < maximumLostVisibilityTime;
                     if (pair.Value.markedToSend) count++;
                 }
                 writer.Write((byte)count);

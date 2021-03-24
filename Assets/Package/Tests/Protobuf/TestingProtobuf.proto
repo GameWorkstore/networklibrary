@@ -1,0 +1,33 @@
+syntax = "proto3";
+option optimize_for = LITE_RUNTIME;
+option go_package = "package;main";
+package Testing;
+
+message SimpleStructure
+{
+   int32 Value1 = 1;
+   int64 Value2 = 2;
+   float Value3 = 3;
+   string Value4 = 4;
+}
+
+message ComplexStructure
+{
+   int32 Value = 1;
+   ComplexStructure Next = 2;
+}
+
+message TestingSimpleValueProtobuf
+{
+   string Value = 1;
+}
+
+message TestingSimpleStructProtobuf
+{
+   SimpleStructure SimpleStructure = 1;
+}
+
+message TestingComplexStructProtobuf
+{
+   ComplexStructure ComplexStructure = 1;
+}

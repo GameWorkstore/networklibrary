@@ -415,8 +415,9 @@ namespace GameWorkstore.NetworkLibrary
         {
             SeekZero();
 
-            // two bytes for size, will be filled out in FinishMessage
-            _buffer.WriteByte2(0, 0);
+            //reserve size;
+            ushort size = 0;
+            Write(size);
 
             // four bytes for message type
             Write(msgType);

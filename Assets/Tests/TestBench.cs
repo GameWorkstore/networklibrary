@@ -230,7 +230,7 @@ namespace Testing
         public void SendComplexProtobufFromServerToClient()
         {
             const string ip = "127.0.0.1";
-            const int port = 1006;
+            const int port = 1007;
             var server = new TestingServer();
             var client = new TestingClient();
             const int Value1 = 100;

@@ -178,7 +178,11 @@ namespace GameWorkstore.NetworkLibrary
         public void FinishMessage()
         {
             // two shorts (size and msgType) are in header.
-            ushort sz = (ushort)(Position - (sizeof(ushort) * 2));
+            ushort sz = (ushort)Position;
+            sz -= 2; //size
+            sz -= 4; //code;
+            SeekZero();
+            //write size
             _buffer[0] = (byte)(sz & 0xff);
             _buffer[1] = (byte)((sz >> 8) & 0xff);
         }

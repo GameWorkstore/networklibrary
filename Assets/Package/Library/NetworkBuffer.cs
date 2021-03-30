@@ -181,7 +181,6 @@ namespace GameWorkstore.NetworkLibrary
             ushort sz = (ushort)Position;
             sz -= 2; //size
             sz -= 4; //code;
-            SeekZero();
             //write size
             _buffer[0] = (byte)(sz & 0xff);
             _buffer[1] = (byte)((sz >> 8) & 0xff);

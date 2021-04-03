@@ -6,24 +6,27 @@ namespace GameWorkstore.NetworkLibrary
 {
     // A growable buffer class used by NetworkReader and NetworkWriter.
     // this is used instead of MemoryStream and BinaryReader/BinaryWriter to avoid allocations.
-    class NetBuffer
+    public class NetBuffer
     {
-        byte[] _buffer;
+        private byte[] _buffer = null;
         const int k_InitialSize = 64;
         const float k_GrowthFactor = 1.5f;
         const int k_BufferSizeWarning = 1024 * 1024 * 128;
 
+        public byte[] Buffer => _buffer;
         public uint Position { get; private set; }
 
         public NetBuffer()
         {
             _buffer = new byte[k_InitialSize];
+            Position = 0;
         }
 
         // this does NOT copy the buffer
         public NetBuffer(byte[] buffer)
         {
             _buffer = buffer;
+            Position = 0;
         }
 
         public byte ReadByte()
@@ -36,7 +39,7 @@ namespace GameWorkstore.NetworkLibrary
             return _buffer[Position++];
         }
 
-        public void ReadBytes(byte[] buffer, uint count)
+        public void ReadBytes(ref byte[] buffer, uint count)
         {
             if (Position + count > _buffer.Length)
             {
@@ -107,34 +110,6 @@ namespace GameWorkstore.NetworkLibrary
             Position += 8;
         }
 
-        // every other Write() function in this class writes implicitly at the end-marker m_Pos.
-        // this is the only Write() function that writes to a specific location within the buffer
-        public void WriteBytesAtOffset(byte[] buffer, ushort targetOffset, ushort count)
-        {
-            uint newEnd = (uint)(count + targetOffset);
-
-            WriteCheckForSpace((ushort)newEnd);
-
-            if (targetOffset == 0 && count == buffer.Length)
-            {
-                buffer.CopyTo(_buffer, Position);
-            }
-            else
-            {
-                //CopyTo doesnt take a count :(
-                for (int i = 0; i < count; i++)
-                {
-                    _buffer[targetOffset + i] = buffer[i];
-                }
-            }
-
-            // although this writes within the buffer, it could move the end-marker
-            if (newEnd > Position)
-            {
-                Position = newEnd;
-            }
-        }
-
         public void WriteBytes(byte[] buffer, ushort count)
         {
             WriteCheckForSpace(count);
@@ -180,7 +155,7 @@ namespace GameWorkstore.NetworkLibrary
             // two shorts (size and msgType) are in header.
             ushort sz = (ushort)Position;
             sz -= 2; //size
-            sz -= 4; //code;
+            sz -= 4; //code
             //write size
             _buffer[0] = (byte)(sz & 0xff);
             _buffer[1] = (byte)((sz >> 8) & 0xff);
@@ -191,11 +166,11 @@ namespace GameWorkstore.NetworkLibrary
             Position = 0;
         }
 
-        public void Replace(byte[] buffer)
+        /*public void Replace(byte[] buffer)
         {
             _buffer = buffer;
             Position = 0;
-        }
+        }*/
 
         public override string ToString()
         {

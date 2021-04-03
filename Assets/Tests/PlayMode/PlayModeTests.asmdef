@@ -1,19 +1,21 @@
 {
-    "name": "Tests",
+    "name": "PlayModeTests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "GameWorkstore.NetworkLibrary",
         "GameWorkstore.Patterns",
-        "GameWorkstore.Google.Protobuf"
+        "GameWorkstore.Google.Protobuf",
+        "TestBase"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "System.Memory.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [

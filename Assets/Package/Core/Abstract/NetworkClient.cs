@@ -11,7 +11,7 @@ namespace GameWorkstore.NetworkLibrary
     {
         private string SERVERIP = "127.0.0.1";
         protected NetConnection CONN;
-        private Action<bool> OnConnect;
+        private Action<bool,NetConnection> OnConnect;
         private NetworkClientState STATE;
         private NetworkClientObjectController _objects;
 
@@ -48,9 +48,9 @@ namespace GameWorkstore.NetworkLibrary
         }
 
         public void Connect(string ip) { Connect(ip, PORT, null); }
-        public void Connect(string ip, Action<bool> onConnect) { Connect(ip, PORT, onConnect); }
+        public void Connect(string ip, Action<bool,NetConnection> onConnect) { Connect(ip, PORT, onConnect); }
         public void Connect(string ip, int port) { Connect(ip, port, null); }
-        public void Connect(string ip, int port, Action<bool> onConnect)
+        public void Connect(string ip, int port, Action<bool,NetConnection> onConnect)
         {
             OnConnect = onConnect;
             PORT = port;
@@ -223,7 +223,7 @@ namespace GameWorkstore.NetworkLibrary
         /// <param name="messege">error or acceptance.</param>
         protected virtual void HandleConnection(bool connected, string messege)
         {
-            OnConnect?.Invoke(true);
+            OnConnect?.Invoke(connected,CONN);
             if (connected)
             {
                 if(messege != null) Log(messege, DebugLevel.INFO);

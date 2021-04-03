@@ -40,7 +40,7 @@ namespace GameWorkstore.NetworkLibrary
         private NetworkEventType _evt;
 
         private float _lastStayAliveSolver;
-        private const float _queueStayAliveTime = 1f;
+        private const float _queueStayAliveTime = 2f;
         private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
         private DataReceived _current;
 
@@ -297,7 +297,7 @@ namespace GameWorkstore.NetworkLibrary
             return _handlers.UnregisterHandler(code, function);
         }
 
-        public void AddProtoHandler<T>(Action<T> function, bool prehandler = false) where T : IMessage<T>, new()
+        public void AddProtoHandler<T>(Action<ProtobufPacket<T>> function, bool prehandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
             if(prehandler)
@@ -310,7 +310,7 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        public bool ContainsProtoHandler<T>(Action<T> function, bool prehandler = false) where T : IMessage<T>, new()
+        public bool ContainsProtoHandler<T>(Action<ProtobufPacket<T>> function, bool prehandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
             if(prehandler)
@@ -323,7 +323,7 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
         
-        public bool RemoveProtoHandler<T>(Action<T> function, bool prehandler = false) where T : IMessage<T>, new()
+        public bool RemoveProtoHandler<T>(Action<ProtobufPacket<T>> function, bool prehandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
             if(prehandler)

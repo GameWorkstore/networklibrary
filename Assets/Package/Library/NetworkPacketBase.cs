@@ -19,28 +19,34 @@ namespace GameWorkstore.NetworkLibrary
 
     public static class NetworkPacketExtensions
     {
-        public static int Code(this NetworkPacketBase pkg)
+        public static uint Code(this NetworkPacketBase pkg)
         {
-            return Animator.StringToHash(pkg.GetType().Name);
+            return (uint)Animator.StringToHash(pkg.GetType().Name);
         }
 
-        public static int Code<T>() where T : NetworkPacketBase, new()
+        public static uint Code<T>() where T : NetworkPacketBase, new()
         {
-            return Animator.StringToHash(typeof(T).Name);
+            return (uint)Animator.StringToHash(typeof(T).Name);
         }
     }
 
     public static class ProtobufPacketExtensions
     {
-        public static int Code(this IMessage pkg)
+        public static uint Code(this IMessage pkg)
         {
-            return Animator.StringToHash(pkg.GetType().Name);
+            return (uint)Animator.StringToHash(pkg.GetType().Name);
         }
 
-        public static int Code<T>() where T : IMessage<T>, new()
+        public static uint Code<T>() where T : IMessage<T>, new()
         {
-            return Animator.StringToHash(typeof(T).Name);
+            return (uint)Animator.StringToHash(typeof(T).Name);
         }
+    }
+
+    public class ProtobufPacket<T> where T : IMessage
+    {
+        public NetConnection Conn;
+        public T Proto;
     }
 
     public class AuthenticationRequestPacket : NetworkPacketBase

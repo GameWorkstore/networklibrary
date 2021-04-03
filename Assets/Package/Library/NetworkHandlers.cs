@@ -16,7 +16,15 @@ namespace GameWorkstore.NetworkLibrary
 
         public override void Invoke(NetMessage packet)
         {
-            var it = packet.ReadMessage<T>();
+            T it = null;
+            try
+            {
+                it = packet.ReadMessage<T>();
+            }
+            catch(Exception e)
+            {
+                DebugMessege.Log("Error while parsing " + typeof(T).Name + " packet:\n" + e.Message + "\n" + e.StackTrace, DebugLevel.ERROR);
+            }
             Function(it);
         }
 
@@ -33,15 +41,27 @@ namespace GameWorkstore.NetworkLibrary
 
     public class ProtoHandler<T> : NetworkHandlerBase where T : IMessage<T>, new()
     {
-        public Action<T> Function;
-        public static MessageParser<T> Parser = new MessageParser<T>(Parse);
+        public Action<ProtobufPacket<T>> Function;
+        private static readonly MessageParser<T> _parser = new MessageParser<T>(Parse);
 
         private static T Parse() { return new T(); }
 
         public override void Invoke(NetMessage packet)
         {
-            //var it = packet.Reader.ReadBytes(packet);
-            //Function(it);
+            T proto = default;
+            try
+            {
+                proto = _parser.ParseFrom(packet.Reader.Buffer);
+            }
+            catch(Exception e)
+            {
+                DebugMessege.Log("Error while parsing " + typeof(T).Name + " packet:\n" + e.Message + "\n" + e.StackTrace, DebugLevel.ERROR);
+            }
+            Function(new ProtobufPacket<T>()
+            {
+                Conn = packet.Conn,
+                Proto = proto,
+            });
         }
 
         public override bool Equals(object other)
@@ -57,9 +77,9 @@ namespace GameWorkstore.NetworkLibrary
 
     public class NetworkHandlers
     {
-        private readonly Dictionary<int, HighSpeedArray<NetworkHandlerBase>> _handlers = new Dictionary<int, HighSpeedArray<NetworkHandlerBase>>();
+        private readonly Dictionary<uint, HighSpeedArray<NetworkHandlerBase>> _handlers = new Dictionary<uint, HighSpeedArray<NetworkHandlerBase>>();
 
-        public void RegisterHandler<T>(int code, Action<T> function) where T : NetworkPacketBase, new()
+        public void RegisterHandler<T>(uint code, Action<T> function) where T : NetworkPacketBase, new()
         {
             if (function == null)
             {
@@ -89,7 +109,7 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        internal bool ContainsHandler<T>(int code, Action<T> function) where T : NetworkPacketBase, new()
+        internal bool ContainsHandler<T>(uint code, Action<T> function) where T : NetworkPacketBase, new()
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {
@@ -102,7 +122,7 @@ namespace GameWorkstore.NetworkLibrary
             return false;
         }
 
-        public bool UnregisterHandler<T>(int code, Action<T> function) where T : NetworkPacketBase, new()
+        public bool UnregisterHandler<T>(uint code, Action<T> function) where T : NetworkPacketBase, new()
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {
@@ -115,7 +135,7 @@ namespace GameWorkstore.NetworkLibrary
             return false;
         }
 
-        public void RegisterProtoHandler<T>(int code, Action<T> function) where T : IMessage<T>, new()
+        public void RegisterProtoHandler<T>(uint code, Action<ProtobufPacket<T>> function) where T : IMessage<T>, new()
         {
             if (function == null)
             {
@@ -145,7 +165,7 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        internal bool ContainsProtoHandler<T>(int code, Action<T> function) where T : IMessage<T>, new()
+        internal bool ContainsProtoHandler<T>(uint code, Action<ProtobufPacket<T>> function) where T : IMessage<T>, new()
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {
@@ -158,7 +178,7 @@ namespace GameWorkstore.NetworkLibrary
             return false;
         }
 
-        internal bool UnregisterProtoHandler<T>(int code, Action<T> function) where T : IMessage<T>, new()
+        internal bool UnregisterProtoHandler<T>(uint code, Action<ProtobufPacket<T>> function) where T : IMessage<T>, new()
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {
@@ -171,7 +191,7 @@ namespace GameWorkstore.NetworkLibrary
             return false;
         }
 
-        internal bool Invoke(int code, NetMessage message)
+        internal bool Invoke(uint code, NetMessage message)
         {
             if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
             {

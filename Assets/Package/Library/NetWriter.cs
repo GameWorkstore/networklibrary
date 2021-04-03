@@ -13,27 +13,17 @@ namespace GameWorkstore.NetworkLibrary
     {
         private const int k_MaxStringLength = 1024 * 32;
         private readonly NetBuffer _buffer;
-        private static Encoding _encoding;
-        private static byte[] _stringWriteBuffer;
+        private static readonly Encoding _encoding = new UTF8Encoding();
+        private static readonly byte[] _stringWriteBuffer = new byte[k_MaxStringLength];
 
         public NetWriter()
         {
             _buffer = new NetBuffer();
-            if (_encoding == null)
-            {
-                _encoding = new UTF8Encoding();
-                _stringWriteBuffer = new byte[k_MaxStringLength];
-            }
         }
 
         public NetWriter(byte[] buffer)
         {
             _buffer = new NetBuffer(buffer);
-            if (_encoding == null)
-            {
-                _encoding = new UTF8Encoding();
-                _stringWriteBuffer = new byte[k_MaxStringLength];
-            }
         }
 
         public short Position { get { return (short)_buffer.Position; } }
@@ -205,12 +195,18 @@ namespace GameWorkstore.NetworkLibrary
 
         public void Write(short value)
         {
-            _buffer.WriteByte2((byte)(value & 0xff), (byte)((value >> 8) & 0xff));
+            _buffer.WriteByte2(
+                (byte)(value & 0xff),
+                (byte)((value >> 8) & 0xff)
+            );
         }
 
         public void Write(ushort value)
         {
-            _buffer.WriteByte2((byte)(value & 0xff), (byte)((value >> 8) & 0xff));
+            _buffer.WriteByte2(
+                (byte)(value & 0xff),
+                (byte)((value >> 8) & 0xff)
+            );
         }
 
         public void Write(int value)
@@ -220,7 +216,8 @@ namespace GameWorkstore.NetworkLibrary
                 (byte)(value & 0xff),
                 (byte)((value >> 8) & 0xff),
                 (byte)((value >> 16) & 0xff),
-                (byte)((value >> 24) & 0xff));
+                (byte)((value >> 24) & 0xff)
+            );
         }
 
         public void Write(uint value)
@@ -411,7 +408,7 @@ namespace GameWorkstore.NetworkLibrary
             _buffer.SeekZero();
         }
 
-        public void StartMessage(int msgType)
+        public void StartMessage(uint msgType)
         {
             SeekZero();
 

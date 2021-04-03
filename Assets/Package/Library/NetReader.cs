@@ -11,34 +11,24 @@ namespace GameWorkstore.NetworkLibrary
         private readonly NetBuffer _buffer;
         private const int k_MaxStringLength = 1024 * 32;
         private const int k_InitialStringBufferSize = 1024;
-        private static byte[] _stringReaderBuffer;
-        private static Encoding _encoding;
+        private static byte[] _stringReaderBuffer = new byte[k_InitialStringBufferSize];
+        private static readonly Encoding _encoding = new UTF8Encoding();
+
+        public byte[] Buffer => _buffer.Buffer;
 
         public NetReader()
         {
             _buffer = new NetBuffer();
-            Initialize();
         }
 
         public NetReader(NetWriter writer)
         {
             _buffer = new NetBuffer(writer.AsArray());
-            Initialize();
         }
 
         public NetReader(byte[] buffer)
         {
             _buffer = new NetBuffer(buffer);
-            Initialize();
-        }
-
-        static void Initialize()
-        {
-            if (_encoding == null)
-            {
-                _stringReaderBuffer = new byte[k_InitialStringBufferSize];
-                _encoding = new UTF8Encoding();
-            }
         }
 
         public uint Position { get { return _buffer.Position; } }
@@ -48,9 +38,15 @@ namespace GameWorkstore.NetworkLibrary
             _buffer.SeekZero();
         }
 
-        internal void Replace(byte[] buffer)
+        /*internal void Replace(byte[] buffer)
         {
             _buffer.Replace(buffer);
+        }*/
+
+        public void ReadHeader(out uint code, out ushort size)
+        {
+            size = ReadUshort();
+            code = ReadUInt();
         }
 
         // http://sqlite.org/src4/doc/trunk/www/varint.wiki
@@ -286,7 +282,7 @@ namespace GameWorkstore.NetworkLibrary
                 _stringReaderBuffer = new byte[_stringReaderBuffer.Length * 2];
             }
 
-            _buffer.ReadBytes(_stringReaderBuffer, numBytes);
+            _buffer.ReadBytes(ref _stringReaderBuffer, numBytes);
 
             char[] chars = _encoding.GetChars(_stringReaderBuffer, 0, numBytes);
             return new string(chars);
@@ -305,12 +301,9 @@ namespace GameWorkstore.NetworkLibrary
 
         public byte[] ReadBytes(int count)
         {
-            if (count < 0)
-            {
-                throw new IndexOutOfRangeException("NetworkReader ReadBytes " + count);
-            }
+            if (count < 0) throw new IndexOutOfRangeException("NetworkReader ReadBytes " + count);
             byte[] value = new byte[count];
-            _buffer.ReadBytes(value, (uint)count);
+            _buffer.ReadBytes(ref value, (uint)count);
             return value;
         }
 

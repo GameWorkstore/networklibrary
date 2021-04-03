@@ -1,60 +1,92 @@
 using GameWorkstore.NetworkLibrary;
+using GameWorkstore.Patterns;
+using Google.Protobuf;
 using NUnit.Framework;
 using System;
+using System.Collections;
+using System.Diagnostics;
+using System.IO;
+using UnityEngine;
+using UnityEngine.TestTools;
+using Debug = UnityEngine.Debug;
 
 namespace Testing
 {
-
-    public class TestingServer : NetworkHost { }
-    public class TestingClient : NetworkClient { }
-    public class TestingPackage : NetworkPacketBase
-    {
-        public string Value;
-
-        public override void Deserialize(NetReader reader)
-        {
-            Value = reader.ReadString();
-        }
-
-        public override void Serialize(NetWriter writer)
-        {
-            writer.Write(Value);
-        }
-    }
-
     public class TestBench
     {
+        [Test]
+        public void HashCode()
+        {
+            int original = -124526876;
+            uint target = (uint)original;
+            int recovered = (int)target;
+            Assert.AreEqual(original,recovered);
+        }
+
+        [Test]
+        public void HashesAreEqual()
+        {
+            var pktCode = new TestingSimpleValueProtobuf().Code();
+            var hardCode = ProtobufPacketExtensions.Code<TestingSimpleValueProtobuf>();
+            Assert.AreEqual(pktCode,hardCode);
+        }
+
+        [Test]
+        public void HashesAreDifferent()
+        {
+            var hardCodeA = ProtobufPacketExtensions.Code<TestingSimpleValueProtobuf>();
+            var hardCodeB = ProtobufPacketExtensions.Code<TestingComplexStructProtobuf>();
+            Assert.AreNotEqual(hardCodeA,hardCodeB);
+        }
+
+        [Test]
+        public void ProtobufToArrayAndRebuild()
+        {
+            var pkt = new TestingSimpleValueProtobuf(){
+                Value = TestServerConsts.SimpleValue
+            };
+            var data = pkt.ToByteArray();
+            var recv = TestingSimpleValueProtobuf.Parser.ParseFrom(data);
+            Assert.AreEqual(pkt.Value,recv.Value);
+        }
+
         /// <summary>
         /// Test if we can create and destroy server.
         /// </summary>
-        [Test]
-        public void Create_Destroy()
+        [UnityTest]
+        public IEnumerator Create_Destroy()
         {
             const int port = 1000;
             var server = new TestingServer();
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
+                gate.Release();
                 Assert.True(initialized);
             });
+            yield return gate;
         }
 
         /// <summary>
         /// Test if we can create, connect, disconnect and destroy a match.
         /// </summary>
-        [Test]
-        public void Create_Connect_Disconnect_Destroy()
+        [UnityTest]
+        public IEnumerator Create_Connect_Disconnect_Destroy()
         {
             const string ip = "127.0.0.1";
             const int port = 1001;
             var server = new TestingServer();
             var client = new TestingClient();
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
+                    gate.Release();
                     Assert.True(connected);
                 });
             });
+            yield return gate;
         }
 
         [Test]
@@ -72,20 +104,22 @@ namespace Testing
             Assert.True(contains && notContains);
         }
 
-        [Test]
-        public void SendPackageFromServerToClient()
+        [UnityTest]
+        public IEnumerator SendPackageFromServerToClient()
         {
             const string ip = "127.0.0.1";
             const int port = 1002;
             const string sendingContent = "sha1234571325646578923";
             var server = new TestingServer();
             var client = new TestingClient();
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
                     client.AddHandler<TestingPackage>(package =>
                     {
+                        gate.Release();
                         Assert.AreEqual(sendingContent, package.Value);
                     });
                     var sending = new TestingPackage()
@@ -95,22 +129,25 @@ namespace Testing
                     server.SendToAll(sending, server.CHANNEL_RELIABLE);
                 });
             });
+            yield return gate;
         }
 
-        [Test]
-        public void SendPackageFromClientToServer()
+        [UnityTest]
+        public IEnumerator SendPackageFromClientToServer()
         {
             const string ip = "127.0.0.1";
             const int port = 1003;
             const string sendingContent = "cli1234571325646578923";
             var server = new TestingServer();
             var client = new TestingClient();
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
                     server.AddHandler<TestingPackage>(package =>
                     {
+                        gate.Release();
                         Assert.AreEqual(sendingContent, package.Value);
                     });
                     var sending = new TestingPackage()
@@ -120,13 +157,14 @@ namespace Testing
                     client.Send(sending, server.CHANNEL_RELIABLE);
                 });
             });
+            yield return gate;
         }
 
         [Test]
         public void Add_Remove_ProtoHandler()
         {
             var server = new TestingServer();
-            Action<TestingSimpleValueProtobuf> action = t =>
+            Action<ProtobufPacket<TestingSimpleValueProtobuf>> action = t =>
             {
                 return;
             };
@@ -136,23 +174,23 @@ namespace Testing
             Assert.False(server.ContainsProtoHandler(action));
         }
 
-        [Test]
-        public void SendProtobufFromClientToServer()
+        [UnityTest]
+        public IEnumerator SendProtobufFromClientToServer()
         {
             const string ip = "127.0.0.1";
             const int port = 1004;
             var server = new TestingServer();
             var client = new TestingClient();
             const string sendingContent = "cli1234571325646578923";
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                Assert.True(initialized);
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
-                    Assert.True(connected);
                     server.AddProtoHandler<TestingSimpleValueProtobuf>(package =>
                     {
-                        Assert.AreEqual(sendingContent, package.Value);
+                        gate.Release();
+                        Assert.AreEqual(sendingContent, package.Proto.Value);
                     });
                     var sending = new TestingSimpleValueProtobuf()
                     {
@@ -161,23 +199,26 @@ namespace Testing
                     client.Send(sending, server.CHANNEL_RELIABLE);
                 });
             });
+            yield return gate;
         }
 
-        [Test]
-        public void SendProtobufFromServerToClient()
+        [UnityTest]
+        public IEnumerator SendProtobufFromServerToClient()
         {
             const string ip = "127.0.0.1";
             const int port = 1005;
             var server = new TestingServer();
             var client = new TestingClient();
             const string sendingContent = "cli1234571325646578923";
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
                     client.AddProtoHandler<TestingSimpleValueProtobuf>(package =>
                     {
-                        Assert.AreEqual(sendingContent, package.Value);
+                        gate.Release();
+                        Assert.AreEqual(sendingContent, package.Proto.Value);
                     });
                     var sending = new TestingSimpleValueProtobuf()
                     {
@@ -186,10 +227,11 @@ namespace Testing
                     server.SendToAll(sending, server.CHANNEL_RELIABLE);
                 });
             });
+            yield return gate;
         }
 
-        [Test]
-        public void SendComplexProtobufFromClientToServer()
+        [UnityTest]
+        public IEnumerator SendComplexProtobufFromClientToServer()
         {
             const string ip = "127.0.0.1";
             const int port = 1006;
@@ -197,16 +239,16 @@ namespace Testing
             var client = new TestingClient();
             const int Value1 = 100;
             const int Value2 = 101;
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                Assert.True(initialized);
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
-                    Assert.True(connected);
                     server.AddProtoHandler<TestingComplexStructProtobuf>(package =>
                     {
-                        bool value1 = package.ComplexStructure.Value == Value1;
-                        bool value2 = package.ComplexStructure.Next.Value == Value2;
+                        bool value1 = package.Proto.ComplexStructure.Value == Value1;
+                        bool value2 = package.Proto.ComplexStructure.Next.Value == Value2;
+                        gate.Release();
                         Assert.True(value1 && value2);
                     });
                     var sending = new TestingComplexStructProtobuf()
@@ -224,10 +266,11 @@ namespace Testing
                     client.Send(sending, server.CHANNEL_RELIABLE);
                 });
             });
+            yield return gate;
         }
 
-        [Test]
-        public void SendComplexProtobufFromServerToClient()
+        [UnityTest]
+        public IEnumerator SendComplexProtobufFromServerToClient()
         {
             const string ip = "127.0.0.1";
             const int port = 1007;
@@ -235,16 +278,16 @@ namespace Testing
             var client = new TestingClient();
             const int Value1 = 100;
             const int Value2 = 101;
+            var gate = new Gate();
             server.Init(port, initialized =>
             {
-                Assert.True(initialized);
-                client.Connect(ip, port, connected =>
+                client.Connect(ip, port, (connected,_) =>
                 {
-                    Assert.True(connected);
                     client.AddProtoHandler<TestingComplexStructProtobuf>(package =>
                     {
-                        bool value1 = package.ComplexStructure.Value == Value1;
-                        bool value2 = package.ComplexStructure.Next.Value == Value2;
+                        gate.Release();
+                        bool value1 = package.Proto.ComplexStructure.Value == Value1;
+                        bool value2 = package.Proto.ComplexStructure.Next.Value == Value2;
                         Assert.True(value1 && value2);
                     });
                     var sending = new TestingComplexStructProtobuf()
@@ -262,6 +305,7 @@ namespace Testing
                     server.SendToAll(sending, server.CHANNEL_RELIABLE);
                 });
             });
+            yield return gate;
         }
     }
 }

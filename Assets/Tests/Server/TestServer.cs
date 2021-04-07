@@ -28,6 +28,20 @@ public class TestingPackage : NetworkPacketBase
         writer.Write(Value);
     }
 }
+public class TestingPackageB : NetworkPacketBase
+{
+    public string BValue;
+
+    public override void Deserialize(NetReader reader)
+    {
+        BValue = reader.ReadString();
+    }
+
+    public override void Serialize(NetWriter writer)
+    {
+        writer.Write(BValue);
+    }
+}
 public class TestingServerService : NetworkHostService<TestingServer> { }
 
 public static class TestServerConsts

@@ -307,5 +307,41 @@ namespace Testing
             });
             yield return gate;
         }
+
+        [UnityTest]
+        public IEnumerator SendUnknownPacketOnlyTriggersWarnings()
+        {
+            const string ip = "127.0.0.1";
+            const int port = 1008;
+            var server = new TestingServer();
+            var client = new TestingClient();
+            var gate = new Gate();
+            server.Init(port, initialized =>
+            {
+                server.OnSocketConnection.Register(t => 
+                {
+                    var sendingA = new TestingPackage()
+                    {
+                        Value = "abc"
+                    };
+                    var sendingB = new TestingPackageB()
+                    {
+                        BValue = "bcd"
+                    };
+                    server.SendToAll(sendingB, server.CHANNEL_RELIABLE);
+                    server.SendToAll(sendingA, server.CHANNEL_RELIABLE);
+                });
+                client.Connect(ip, port, (connected,conn) =>
+                {
+                    conn.DebugPackets = true;
+                    client.AddHandler<TestingPackageB>(package =>
+                    {
+                        gate.Release();
+                        Assert.AreEqual("bcd",package.BValue);
+                    });
+                });
+            });
+            yield return gate;
+        }
     }
 }

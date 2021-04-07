@@ -270,7 +270,7 @@ namespace GameWorkstore.NetworkLibrary
             
             if (!_networkHandlers.Invoke(code, msg))
             {
-                DebugMessege.Log("Unknown message ID " + code + " connId:" + LocalConnectionId, DebugLevel.ERROR);
+                DebugMessege.Log("Unknown message ID " + code + " connId:" + LocalConnectionId, DebugLevel.WARNING);
                 return;
             }
 

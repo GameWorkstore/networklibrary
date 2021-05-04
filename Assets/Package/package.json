@@ -1,6 +1,6 @@
 {
   "name": "com.gameworkstore.networklibrary",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "displayName": "GameWorkstore NetLibrary",
   "description": "Network Library for Unity Projects based on old UNET!",
   "unity": "2020.1",

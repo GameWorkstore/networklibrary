@@ -7,36 +7,36 @@ using Google.Protobuf;
 
 namespace GameWorkstore.NetworkLibrary
 {
-    public abstract class BaseConnection
+    public abstract class BaseConnection : IDisposable
     {
-        private EventService _eventService;
+        private readonly EventService _eventService;
 
-        protected short SOCKETID;
-        protected int PORT = 8080;
-        protected int PRECONNECTIONSIZE = 8;
-        protected int MATCHSIZE = 8;
-        protected int BOTSIZE = 0;
-        protected NetworkHandlers _prehandlers = new NetworkHandlers();
-        protected NetworkHandlers _handlers = new NetworkHandlers();
-        protected Dictionary<short, NetConnection> _preconnections = new Dictionary<short, NetConnection>();
-        protected Dictionary<short, NetConnection> _connections = new Dictionary<short, NetConnection>();
+        protected short SocketId;
+        protected int Port = 8080;
+        protected int PreConnectionSize = 8;
+        protected int MatchSize = 8;
+        protected int BotSize = 0;
+        protected readonly NetworkHandlers PreHandlers = new NetworkHandlers();
+        protected readonly NetworkHandlers Handlers = new NetworkHandlers();
+        protected readonly Dictionary<short, NetConnection> PreConnections = new Dictionary<short, NetConnection>();
+        protected readonly Dictionary<short, NetConnection> Connections = new Dictionary<short, NetConnection>();
 
-        private static int NETWORK_INITIALIZATION;
-        private static uint UNIQUEID = 1;
+        private static int _networkInitialization;
+        private static uint _uniqueId = 1;
 
-        public byte CHANNEL_STATE_COUNT = 0;
-        public byte CHANNEL_RELIABLE_ORDERED { get; private set; }
-        public byte CHANNEL_RELIABLE { get; private set; }
-        public byte CHANNEL_ALLCOSTDELIVERY { get; private set; }
-        public byte CHANNEL_UNRELIABLE { get; private set; }
-        public byte[] CHANNEL_STATECHANNEL { get; private set; }
+        public byte ChannelStateCount = 0;
+        public byte ChannelReliableOrdered { get; private set; }
+        public byte ChannelReliable { get; private set; }
+        public byte ChannelAllCostDelivery { get; private set; }
+        public byte ChannelUnreliable { get; private set; }
+        public byte[] ChannelStateStream { get; private set; }
 
         private int _outConnectionId;
         private int _outChannelId;
-        private const int bufferSize = 1024;
-        private int receiveSize;
-        private byte[] buffer = new byte[1024];
-        private byte error;
+        private const int _bufferSize = 1024;
+        private int _receiveSize;
+        private byte[] _buffer = new byte[1024];
+        private byte _error;
         private NetworkEventType _evt;
 
         private float _lastStayAliveSolver;
@@ -44,63 +44,53 @@ namespace GameWorkstore.NetworkLibrary
         private static readonly NetworkAlivePacket _stayAlivePacket = new NetworkAlivePacket();
         private DataReceived _current;
 
-        public BaseConnection()
-        {
-            Preprocess();
-        }
-
-        ~BaseConnection()
-        {
-            Postprocess();
-        }
-
-        protected virtual void Preprocess()
+        protected BaseConnection()
         {
             Application.runInBackground = true;
             _eventService = ServiceProvider.GetService<EventService>();
 
             InitTransportLayer();
-            SOCKETID = -1;
+            SocketId = -1;
             AddHandler<NetworkAlivePacket>(IsAlive);
             AddHandler<NetworkAlivePacket>(IsAlive, true);
 #if UNITY_EDITOR
             NetworkDetailStats.ResetAll();
 #endif
         }
-
-        protected virtual void Postprocess()
+        
+        public virtual void Dispose()
         {
             RemoveHandler<NetworkAlivePacket>(IsAlive, true);
             RemoveHandler<NetworkAlivePacket>(IsAlive);
             DestroyTransportLayer();
         }
 
-        private static void IsAlive(NetworkAlivePacket evt) { }
+        protected static void IsAlive(NetworkAlivePacket evt) { }
 
         protected virtual void UpdateConnection()
         {
             while (HasSocket())
             {
-                _evt = NetworkTransport.ReceiveFromHost(SOCKETID, out _outConnectionId, out _outChannelId, buffer, bufferSize, out receiveSize, out error);
+                _evt = NetworkTransport.ReceiveFromHost(SocketId, out _outConnectionId, out _outChannelId, _buffer, _bufferSize, out _receiveSize, out _error);
                 //if nothing to process, break
                 if (_evt == NetworkEventType.Nothing) break;
 
                 switch (_evt)
                 {
                     case NetworkEventType.ConnectEvent:
-                        HandleConnect((short)_outConnectionId, error);
+                        HandleConnect((short)_outConnectionId, _error);
                         break;
                     case NetworkEventType.DisconnectEvent:
-                        HandleDisconnect((short)_outConnectionId, error);
+                        HandleDisconnect((short)_outConnectionId, _error);
                         //clear simulation
                         _dataReceived.Clear();
                         //stop
                         return;
                     case NetworkEventType.DataEvent:
                         if (PING_SIMULATION)
-                            SimulateDataReceived((short)_outConnectionId, _outChannelId, ref buffer, receiveSize, error);
+                            SimulateDataReceived((short)_outConnectionId, _outChannelId, ref _buffer, _receiveSize, _error);
                         else
-                            HandleDataReceived((short)_outConnectionId, _outChannelId, ref buffer, receiveSize, error);
+                            HandleDataReceived((short)_outConnectionId, _outChannelId, ref _buffer, _receiveSize, _error);
                         break;
                     case NetworkEventType.Nothing: break;
                     default: Log("Unknown network message type received: " + _evt, DebugLevel.INFO); break;
@@ -116,23 +106,23 @@ namespace GameWorkstore.NetworkLibrary
             // deliver stay alive packets
             if (SimulationTime() > _lastStayAliveSolver + _queueStayAliveTime)
             {
-                foreach (var preconn in _preconnections)
+                foreach (var conn in PreConnections)
                 {
-                    preconn.Value.SendByChannel(_stayAlivePacket, CHANNEL_UNRELIABLE);
+                    conn.Value.SendByChannel(_stayAlivePacket, ChannelUnreliable);
                 }
-                foreach (var conn in _connections)
+                foreach (var conn in Connections)
                 {
-                    conn.Value.SendByChannel(_stayAlivePacket, CHANNEL_UNRELIABLE);
+                    conn.Value.SendByChannel(_stayAlivePacket, ChannelUnreliable);
                 }
                 _lastStayAliveSolver = SimulationTime();
             }
 
             // flush all channels
-            foreach (var preconn in _preconnections)
+            foreach (var conn in PreConnections)
             {
-                preconn.Value.FlushChannels();
+                conn.Value.FlushChannels();
             }
-            foreach (var conn in _connections)
+            foreach (var conn in Connections)
             {
                 conn.Value.FlushChannels();
             }
@@ -143,7 +133,7 @@ namespace GameWorkstore.NetworkLibrary
 
         protected bool HasSocket()
         {
-            return SOCKETID > -1;
+            return SocketId > -1;
         }
 
         protected bool OpenSocket(int port = 0)
@@ -154,8 +144,8 @@ namespace GameWorkstore.NetworkLibrary
                 return false;
             }
 
-            SOCKETID = (short)NetworkTransport.AddHost(GetHostTopology(), port);
-            bool socketInitialized = HasSocket();
+            SocketId = (short)NetworkTransport.AddHost(GetHostTopology(), port);
+            var socketInitialized = HasSocket();
             if (socketInitialized)
             {
                 _eventService.Update.Register(UpdateConnection);
@@ -172,26 +162,31 @@ namespace GameWorkstore.NetworkLibrary
                 return;
             }
             _eventService.Update.Unregister(UpdateConnection);
-            NetworkTransport.RemoveHost(SOCKETID);
-            SOCKETID = -1;
+            NetworkTransport.RemoveHost(SocketId);
+            SocketId = -1;
         }
 
         protected static void InitTransportLayer()
         {
-            if (NETWORK_INITIALIZATION == 0)
+            if (_networkInitialization == 0)
             {
                 NetworkTransport.Init();
             }
-            NETWORK_INITIALIZATION += 1;
+            _networkInitialization += 1;
         }
 
         protected static void DestroyTransportLayer()
         {
-            NETWORK_INITIALIZATION -= 1;
-            if (NETWORK_INITIALIZATION == 0)
+            _networkInitialization -= 1;
+            if (_networkInitialization == 0)
             {
                 NetworkTransport.Shutdown();
             }
+        }
+
+        public static int TransportLayerInitializations()
+        {
+            return _networkInitialization;
         }
 
         protected HostTopology GetHostTopology()
@@ -204,31 +199,28 @@ namespace GameWorkstore.NetworkLibrary
                 AckDelay = 26
             };
 
-            CHANNEL_RELIABLE = config.AddChannel(QosType.Reliable);
-            CHANNEL_RELIABLE_ORDERED = config.AddChannel(QosType.ReliableSequenced);
-            CHANNEL_ALLCOSTDELIVERY = config.AddChannel(QosType.AllCostDelivery);
-            CHANNEL_UNRELIABLE = config.AddChannel(QosType.Unreliable);
-            if (CHANNEL_STATECHANNEL == null)
+            ChannelReliable = config.AddChannel(QosType.Reliable);
+            ChannelReliableOrdered = config.AddChannel(QosType.ReliableSequenced);
+            ChannelAllCostDelivery = config.AddChannel(QosType.AllCostDelivery);
+            ChannelUnreliable = config.AddChannel(QosType.Unreliable);
+            ChannelStateStream = new byte[ChannelStateCount];
+            for (var i = 0; i < ChannelStateStream.Length; i++)
             {
-                CHANNEL_STATECHANNEL = new byte[CHANNEL_STATE_COUNT];
-            }
-            for (int i = 0; i < CHANNEL_STATECHANNEL.Length; i++)
-            {
-                CHANNEL_STATECHANNEL[i] = config.AddChannel(QosType.StateUpdate);
+                ChannelStateStream[i] = config.AddChannel(QosType.StateUpdate);
             }
 
-            return new HostTopology(config, MATCHSIZE + PRECONNECTIONSIZE);
+            return new HostTopology(config, MatchSize + PreConnectionSize);
         }
 
         internal static NetworkInstanceId GetUniqueId()
         {
-            UNIQUEID += 1;
-            return new NetworkInstanceId(UNIQUEID);
+            _uniqueId += 1;
+            return new NetworkInstanceId(_uniqueId);
         }
 
         internal int GetRTT(int connectionId)
         {
-            int rtt = NetworkTransport.GetCurrentRTT(SOCKETID, connectionId, out _);
+            var rtt = NetworkTransport.GetCurrentRTT(SocketId, connectionId, out _);
             return PING_SIMULATION ? (PING_SIMULATED > rtt ? PING_SIMULATED : rtt) : rtt;
         }
 
@@ -237,120 +229,98 @@ namespace GameWorkstore.NetworkLibrary
             return (NetworkError)error == NetworkError.Ok;
         }
 
-        protected NetConnection CreatePreconnection(short connectionId)
+        protected NetConnection CreatePreConnection(short connectionId)
         {
-            var conn = new NetConnection(SOCKETID, connectionId, GetHostTopology(), SimulationTime(), _prehandlers);
-            _preconnections.Add(connectionId, conn);
+            var conn = new NetConnection(SocketId, connectionId, GetHostTopology(), SimulationTime(), PreHandlers);
+            PreConnections.Add(connectionId, conn);
             return conn;
         }
 
-        protected bool RemovePreconnection(short connectionId)
+        protected bool RemovePreConnection(short connectionId)
         {
-            return _preconnections.Remove(connectionId);
+            return PreConnections.Remove(connectionId);
         }
 
         protected NetConnection CreateConnection(short connectionId)
         {
-            var conn = new NetConnection(SOCKETID, connectionId, GetHostTopology(), SimulationTime(), _handlers);
-            _connections.Add(connectionId, conn);
+            var conn = new NetConnection(SocketId, connectionId, GetHostTopology(), SimulationTime(), Handlers);
+            Connections.Add(connectionId, conn);
             return conn;
         }
 
         protected bool RemoveConnection(short connectionId)
         {
-            return _connections.Remove(connectionId);
+            return Connections.Remove(connectionId);
         }
 
-        public void AddHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
+        public void AddHandler<T>(Action<T> function, bool preHandler = false) where T : NetworkPacketBase, new()
         {
             var hash = NetworkPacketExtensions.Code<T>();
-            if (prehandler)
+            if (preHandler)
             {
-                _prehandlers.RegisterHandler(hash, function);
+                PreHandlers.RegisterHandler(hash, function);
             }
             else
             {
-                _handlers.RegisterHandler(hash, function);
+                Handlers.RegisterHandler(hash, function);
             }
         }
 
-        public bool ContainsHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
+        public bool ContainsHandler<T>(Action<T> function, bool preHandler = false) where T : NetworkPacketBase, new()
         {
             var code = NetworkPacketExtensions.Code<T>();
-            if(prehandler)
-            {
-                return _prehandlers.ContainsHandler(code, function);
-            }
-            else
-            {
-                return _handlers.ContainsHandler(code, function);
-            }
+            return preHandler ? PreHandlers.ContainsHandler(code, function) : Handlers.ContainsHandler(code, function);
         }
 
-        public bool RemoveHandler<T>(Action<T> function, bool prehandler = false) where T : NetworkPacketBase, new()
+        public bool RemoveHandler<T>(Action<T> function, bool preHandler = false) where T : NetworkPacketBase, new()
         {
             var code = NetworkPacketExtensions.Code<T>();
-            if (prehandler)
-            {
-                return _prehandlers.UnregisterHandler(code, function);
-            }
-            return _handlers.UnregisterHandler(code, function);
+            return preHandler ? PreHandlers.UnregisterHandler(code, function) : Handlers.UnregisterHandler(code, function);
         }
 
-        public void AddProtoHandler<T>(Action<ProtobufPacket<T>> function, bool prehandler = false) where T : IMessage<T>, new()
+        public void AddProtoHandler<T>(Action<ProtobufPacket<T>> function, bool preHandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
-            if(prehandler)
+            if(preHandler)
             {
-                _prehandlers.RegisterProtoHandler(code, function);
+                PreHandlers.RegisterProtoHandler(code, function);
             }
             else
             {
-                _handlers.RegisterProtoHandler(code, function);
+                Handlers.RegisterProtoHandler(code, function);
             }
         }
 
-        public bool ContainsProtoHandler<T>(Action<ProtobufPacket<T>> function, bool prehandler = false) where T : IMessage<T>, new()
+        public bool ContainsProtoHandler<T>(Action<ProtobufPacket<T>> function, bool preHandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
-            if(prehandler)
-            {
-                return _prehandlers.ContainsProtoHandler(code, function);
-            }
-            else
-            {
-                return _handlers.ContainsProtoHandler(code, function);
-            }
+            return preHandler ? PreHandlers.ContainsProtoHandler(code, function) : Handlers.ContainsProtoHandler(code, function);
         }
         
-        public bool RemoveProtoHandler<T>(Action<ProtobufPacket<T>> function, bool prehandler = false) where T : IMessage<T>, new()
+        public bool RemoveProtoHandler<T>(Action<ProtobufPacket<T>> function, bool preHandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
-            if(prehandler)
-            {
-                return _prehandlers.UnregisterProtoHandler(code, function);
-            }
-            return _handlers.UnregisterProtoHandler(code, function);
+            return preHandler ? PreHandlers.UnregisterProtoHandler(code, function) : Handlers.UnregisterProtoHandler(code, function);
         }
 
         protected abstract void HandleConnect(short connectionId, byte error);
         protected abstract void HandleDisconnect(short connectionId, byte error);
         protected abstract void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error);
 
-        public abstract void Log(string msg, DebugLevel level);
+        protected abstract void Log(string msg, DebugLevel level);
 
         public bool PING_SIMULATION = false;
         public int PING_SIMULATED = 0;
         private readonly Queue<DataReceived> _dataReceived = new Queue<DataReceived>();
 
-        internal class DataReceived
+        private sealed class DataReceived
         {
-            internal float timestamp;
-            internal short connectionId;
-            internal int channelId;
-            internal byte[] buffer;
-            internal int receivedSize;
-            internal byte error;
+            internal float Timestamp;
+            internal short ConnectionId;
+            internal int ChannelId;
+            internal byte[] Buffer;
+            internal int ReceivedSize;
+            internal byte Error;
         }
 
         private void SimulateDataReceived(short outConnectionId, int outChannelId, ref byte[] buffer, int outReceiveSize, byte error)
@@ -360,15 +330,23 @@ namespace GameWorkstore.NetworkLibrary
                 Log("Bad Packet received:" + (NetworkError)error, DebugLevel.ERROR);
                 return;
             }
-            float rt = SimulationTime();
-            int rtt = NetworkTransport.GetCurrentRTT(SOCKETID, outConnectionId, out _);
-            DataReceived rc = new DataReceived() { connectionId = outConnectionId, channelId = outChannelId, error = error, timestamp = rt + (PING_SIMULATED - rtt) / 1000f, receivedSize = outReceiveSize, buffer = ArrayPool<byte>.GetBuffer(1024) };
-            if (receiveSize >= 1024)
+            var rt = SimulationTime();
+            var rtt = NetworkTransport.GetCurrentRTT(SocketId, outConnectionId, out _);
+            var rc = new DataReceived
             {
-                Log("Packet exceeding limit of 1024 bytes:" + receiveSize, DebugLevel.ERROR);
+                ConnectionId = outConnectionId,
+                ChannelId = outChannelId,
+                Error = error,
+                Timestamp = rt + (PING_SIMULATED - rtt) / 1000f,
+                ReceivedSize = outReceiveSize,
+                Buffer = ArrayPool<byte>.GetBuffer(1024)
+            };
+            if (_receiveSize >= 1024)
+            {
+                Log("Packet exceeding limit of 1024 bytes:" + _receiveSize, DebugLevel.ERROR);
                 return;
             }
-            Array.Copy(buffer, rc.buffer, receiveSize);
+            Array.Copy(buffer, rc.Buffer, _receiveSize);
             _dataReceived.Enqueue(rc);
         }
 
@@ -380,11 +358,11 @@ namespace GameWorkstore.NetworkLibrary
                 {
                     _current = _dataReceived.Dequeue();
                 }
-                if (_current.timestamp < SimulationTime())
+                if (_current.Timestamp < SimulationTime())
                 {
-                    HandleDataReceived(_current.connectionId, _current.channelId, ref _current.buffer, _current.receivedSize, _current.error);
-                    ArrayPool<byte>.FreeBuffer(_current.buffer);
-                    _current.buffer = null;
+                    HandleDataReceived(_current.ConnectionId, _current.ChannelId, ref _current.Buffer, _current.ReceivedSize, _current.Error);
+                    ArrayPool<byte>.FreeBuffer(_current.Buffer);
+                    _current.Buffer = null;
                     _current = null;
                 }
                 else

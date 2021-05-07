@@ -9,19 +9,18 @@ namespace GameWorkstore.NetworkLibrary
 {
     public abstract class NetworkClient : BaseConnection
     {
-        private string SERVERIP = "127.0.0.1";
-        protected NetConnection CONN;
-        private Action<bool,NetConnection> OnConnect;
-        private NetworkClientState STATE;
-        private NetworkClientObjectController _objects;
+        private string _serverIp = "127.0.0.1";
+        protected NetConnection Conn;
+        private Action<bool,NetConnection> _onConnect;
+        private NetworkClientState _state;
+        private readonly NetworkClientObjectController _objects;
 
-        private float networkDifference;
+        private float _networkDifference;
         private readonly List<float> _diffs = new List<float>();
 
-        protected override void Preprocess()
+        protected NetworkClient()
         {
-            base.Preprocess();
-            STATE = NetworkClientState.NONE;
+            _state = NetworkClientState.None;
             _objects = new NetworkClientObjectController();
             _objects.OnObjectCreated.Register(HandleObjectCreated);
             _objects.OnObjectDestroyed.Register(HandleObjectDestroyed);
@@ -32,8 +31,9 @@ namespace GameWorkstore.NetworkLibrary
             AddHandler<ObjectSyncDeltaDestroyPacket>(SyncDeltaDestroy);
         }
         
-        protected override void Postprocess()
+        public override void Dispose()
         {
+            base.Dispose();
             _objects.OnObjectCreated.Unregister(HandleObjectCreated);
             _objects.OnObjectDestroyed.Unregister(HandleObjectDestroyed);
             RemoveHandler<AuthenticationRequestPacket>(HandleAuthenticationRequest);
@@ -41,47 +41,46 @@ namespace GameWorkstore.NetworkLibrary
             RemoveHandler<ObjectSyncPacket>(SyncAllObjects);
             RemoveHandler<ObjectSyncDeltaCreatePacket>(SyncDeltaCreate);
             RemoveHandler<ObjectSyncDeltaDestroyPacket>(SyncDeltaDestroy);
-            if (STATE == NetworkClientState.CONNECTING || STATE == NetworkClientState.CONNECTED)
+            if (_state == NetworkClientState.Connecting || _state == NetworkClientState.Connected)
             {
                 Disconnect();
             }
         }
 
-        public void Connect(string ip) { Connect(ip, PORT, null); }
-        public void Connect(string ip, Action<bool,NetConnection> onConnect) { Connect(ip, PORT, onConnect); }
-        public void Connect(string ip, int port) { Connect(ip, port, null); }
-        public void Connect(string ip, int port, Action<bool,NetConnection> onConnect)
+        public void Connect(string ip) { Connect(ip, Port); }
+        public void Connect(string ip, Action<bool,NetConnection> onConnect) { Connect(ip, Port, onConnect); }
+        public void Connect(string ip, int port, Action<bool,NetConnection> onConnect = null)
         {
-            OnConnect = onConnect;
-            PORT = port;
-            SERVERIP = ip;
-            if (STATE != NetworkClientState.NONE && STATE != NetworkClientState.DISCONNECTED)
+            _onConnect = onConnect;
+            Port = port;
+            _serverIp = ip;
+            if (_state != NetworkClientState.None && _state != NetworkClientState.Disconnected)
             {
                 return;
             }
-            if (STATE == NetworkClientState.CONNECTING)
+            if (_state == NetworkClientState.Connecting)
             {
                 return;
             }
             
             //reset networkDifference
             _diffs.Clear();
-            networkDifference = 0;
+            _networkDifference = 0;
 
             if (OpenSocket())
             {
-                Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
+                Log("Socket Open. SocketId is: " + SocketId, DebugLevel.INFO);
 
-                NetworkTransport.Connect(SOCKETID, SERVERIP, PORT, 0, out byte error);
-                STATE = NetworkClientState.CONNECTING;
+                NetworkTransport.Connect(SocketId, _serverIp, Port, 0, out var error);
+                _state = NetworkClientState.Connecting;
 
                 switch ((NetworkError)error)
                 {
                     case NetworkError.Ok:
-                        Log("Start Connection from Socket: " + SOCKETID, DebugLevel.INFO);
+                        Log("Start Connection from Socket: " + SocketId, DebugLevel.INFO);
                         break;
                     default:
-                        HandleConnection(false, "Start Connection from Socket failed: " + SOCKETID + "Error:" + (NetworkError)error);
+                        HandleConnection(false, "Start Connection from Socket failed: " + SocketId + "Error:" + (NetworkError)error);
                         break;
                 }
             }
@@ -98,22 +97,22 @@ namespace GameWorkstore.NetworkLibrary
 
         private void DisconnectInternal(bool isLostConnection, Action onDisconnection)
         {
-            if (STATE != NetworkClientState.CONNECTING && STATE != NetworkClientState.CONNECTED)
+            if (_state != NetworkClientState.Connecting && _state != NetworkClientState.Connected)
             {
                 return;
             }
             
-            Log( isLostConnection? "Connection Lost from Server: " + SOCKETID : "Disconnecting from Server: " + SOCKETID, DebugLevel.INFO);
+            Log( isLostConnection? "Connection Lost from Server: " + SocketId : "Disconnecting from Server: " + SocketId, DebugLevel.INFO);
 
-            if (CONN != null)
+            if (Conn != null)
             {
-                CONN.Disconnect();
-                RemoveConnection(CONN.LocalConnectionId);
-                CONN = null;
+                Conn.Disconnect();
+                RemoveConnection(Conn.LocalConnectionId);
+                Conn = null;
             }
 
             CloseSocket();
-            STATE = NetworkClientState.DISCONNECTED;
+            _state = NetworkClientState.Disconnected;
 
             //Remove All Objects
             _objects.DestroyAllObjects();
@@ -127,7 +126,7 @@ namespace GameWorkstore.NetworkLibrary
         {
             base.UpdateConnection();
             //Queues
-            foreach (var conn in _connections)
+            foreach (var conn in Connections)
             {
                 conn.Value.FlushChannels();
             }
@@ -135,12 +134,12 @@ namespace GameWorkstore.NetworkLibrary
 
         public NetworkClientState GetCurrentState()
         {
-            return STATE;
+            return _state;
         }
 
         public bool Send(NetworkPacketBase request, int channel)
         {
-            if (!CONN.SendByChannel(request, channel))
+            if (!Conn.SendByChannel(request, channel))
             {
                 Log("Failed to send[" + request.Code() + "] packet.", DebugLevel.WARNING);
                 return false;
@@ -150,7 +149,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool Send(IMessage request, int channel)
         {
-            if(!CONN.SendByChannel(request, channel))
+            if(!Conn.SendByChannel(request, channel))
             {
                 Log("Failed to send[" + request.Code() + "] packet.", DebugLevel.WARNING);
                 return false;
@@ -160,16 +159,16 @@ namespace GameWorkstore.NetworkLibrary
 
         public int GetRTT()
         {
-            return GetRTT(CONN.LocalConnectionId);
+            return GetRTT(Conn.LocalConnectionId);
         }
 
         protected override void HandleConnect(short connectionId, byte error)
         {
-            Log("Preconnection started", DebugLevel.INFO);
-            STATE = NetworkClientState.CONNECTED;
-            CONN = CreateConnection(connectionId); //PreConnection
-            // set ServerConnectionId to unitialized, as it ins't right yet
-            CONN.ServerConnectionId = -1;
+            Log("PreConnection started", DebugLevel.INFO);
+            _state = NetworkClientState.Connected;
+            Conn = CreateConnection(connectionId); //PreConnection
+            // set ServerConnectionId to uninitialized, as it isn't right yet
+            Conn.ServerConnectionId = -1;
         }
 
         protected override void HandleDisconnect(short connectionId, byte error)
@@ -179,13 +178,13 @@ namespace GameWorkstore.NetworkLibrary
 
         protected override void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
         {
-            if (_connections.TryGetValue(connectionId, out var conn))
+            if (Connections.TryGetValue(connectionId, out var conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
             }
         }
 
-        public override void Log(string msg, DebugLevel level)
+        protected override void Log(string msg, DebugLevel level)
         {
             DebugMessege.Log("[Client]:" + msg, level);
         }
@@ -208,30 +207,30 @@ namespace GameWorkstore.NetworkLibrary
         {
             Log("Authentication request from server.", DebugLevel.INFO);
             // update server connection
-            CONN.ServerConnectionId = packet.ServerConnectionId;
+            Conn.ServerConnectionId = packet.ServerConnectionId;
             var response = new AuthenticationResponsePacket
             {
                 Payload = "default"
             };
-            Send(response, CHANNEL_RELIABLE);
+            Send(response, ChannelReliable);
         }
 
         /// <summary>
         /// Dispatched when connected successfully or failed
         /// </summary>
         /// <param name="connected">if connection was successful.</param>
-        /// <param name="messege">error or acceptance.</param>
-        protected virtual void HandleConnection(bool connected, string messege)
+        /// <param name="message">error or acceptance.</param>
+        protected virtual void HandleConnection(bool connected, string message)
         {
-            OnConnect?.Invoke(connected,CONN);
+            _onConnect?.Invoke(connected,Conn);
             if (connected)
             {
-                if(messege != null) Log(messege, DebugLevel.INFO);
-                OnConnected.Invoke(CONN);
+                if(message != null) Log(message, DebugLevel.INFO);
+                OnConnected.Invoke(Conn);
             }
             else
             {
-                if(messege != null) Log(messege, DebugLevel.ERROR);
+                if(message != null) Log(message, DebugLevel.ERROR);
                 OnConnectError.Invoke();
             }
         }
@@ -243,7 +242,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public float GetClientNetworkTime()
         {
-            return SimulationTime() + networkDifference + GetPhysicsRTT();
+            return SimulationTime() + _networkDifference + GetPhysicsRTT();
         }
 
         public float GetPhysicsRTT()
@@ -257,24 +256,24 @@ namespace GameWorkstore.NetworkLibrary
         /// <param name="serverConnectionId">NetConnection ServerConnectionId</param>
         public bool IsLocalPlayer(short serverConnectionId)
         {
-            return CONN.ServerConnectionId == serverConnectionId;
+            return Conn.ServerConnectionId == serverConnectionId;
         }
 
         private void SetClientNetworkDifference(float serverTime)
         {
             _diffs.Add(serverTime - SimulationTime());
-            networkDifference = _diffs.Sum() / _diffs.Count;
+            _networkDifference = _diffs.Sum() / _diffs.Count;
         }
 
         private void SyncAllObjects(ObjectSyncPacket packet)
         {
-            _objects.SetSyncPacket(packet, CONN);
+            _objects.SetSyncPacket(packet, Conn);
 
             //test if last packet
             if (!packet.IsLast) return;
 
             //client is connected!
-            HandleConnection(true, "Connected:[ID:" + CONN.LocalConnectionId + "]");
+            HandleConnection(true, "Connected:[ID:" + Conn.LocalConnectionId + "]");
         }
 
         private void SyncDeltaDestroy(ObjectSyncDeltaDestroyPacket packet)
@@ -284,7 +283,7 @@ namespace GameWorkstore.NetworkLibrary
 
         private void SyncDeltaCreate(ObjectSyncDeltaCreatePacket packet)
         {
-            _objects.SetSyncPacket(packet, CONN);
+            _objects.SetSyncPacket(packet, Conn);
         }
 
         public NetworkBaseBehaviour Find(NetworkInstanceId networkInstanceId)
@@ -313,9 +312,9 @@ namespace GameWorkstore.NetworkLibrary
 
     public enum NetworkClientState
     {
-        NONE,
-        CONNECTING,
-        CONNECTED,
-        DISCONNECTED
+        None,
+        Connecting,
+        Connected,
+        Disconnected
     }
 }

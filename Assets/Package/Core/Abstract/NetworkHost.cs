@@ -11,17 +11,16 @@ namespace GameWorkstore.NetworkLibrary
 {
     public abstract class NetworkHost : BaseConnection
     {
-        private NetworkServerObjectController _objects;
+        private readonly NetworkServerObjectController _objects;
 
         private const float _queueSolverTime = 1 / 18f; //Amount of QueueMesseges per Second
         private float _lastQueueSolver;
-        private List<QPacketClass> _classes;
+        private readonly List<QPacketClass> _classes;
 
-        protected bool USENETWORKOBJECTCONTROLLER = true;
+        protected bool UseNetworkObjectController = true;
 
-        protected override void Preprocess()
+        protected NetworkHost()
         {
-            base.Preprocess();
             _classes = new List<QPacketClass>();
             _objects = new NetworkServerObjectController();
             _objects.OnObjectCreated.Register(HandleObjectCreated);
@@ -29,8 +28,9 @@ namespace GameWorkstore.NetworkLibrary
             AddHandler<AuthenticationResponsePacket>(HandleAuthentication, true);
         }
 
-        protected override void Postprocess()
+        public override void Dispose()
         {
+            base.Dispose();
             _objects.OnObjectCreated.Unregister(HandleObjectCreated);
             _objects.OnObjectDestroyed.Unregister(HandleObjectDestroyed);
             RemoveHandler<AuthenticationResponsePacket>(HandleAuthentication, true);
@@ -38,28 +38,27 @@ namespace GameWorkstore.NetworkLibrary
             {
                 Shutdown();
             }
-            base.Postprocess();
         }
 
-        public void Init() { Init(PORT, MATCHSIZE, BOTSIZE, null); }
-        public void Init(Action<bool> onInit) { Init(PORT, MATCHSIZE, BOTSIZE, onInit); }
-        public void Init(int port, Action<bool> onInit) { Init(port, MATCHSIZE, BOTSIZE, onInit); }
-        public void Init(int port) { Init(port, MATCHSIZE, BOTSIZE, null); }
-        public void Init(int port, int matchSize, int botSize, Action<bool> OnInit)
+        public void Init() { Init(Port, MatchSize, BotSize, null); }
+        public void Init(Action<bool> onInit) { Init(Port, MatchSize, BotSize, onInit); }
+        public void Init(int port, Action<bool> onInit) { Init(port, MatchSize, BotSize, onInit); }
+        public void Init(int port) { Init(port, MatchSize, BotSize, null); }
+        public void Init(int port, int matchSize, int botSize, Action<bool> onInit)
         {
-            PORT = port;
-            MATCHSIZE = matchSize;
-            BOTSIZE = botSize;
-            if (OpenSocket(PORT))
+            Port = port;
+            MatchSize = matchSize;
+            BotSize = botSize;
+            if (OpenSocket(Port))
             {
-                Log("Socket Open. SocketId is: " + SOCKETID, DebugLevel.INFO);
-                Preinitialize();
-                OnInit?.Invoke(true);
+                Log("Socket Open. SocketId is: " + SocketId, DebugLevel.INFO);
+                PreInitialize();
+                onInit?.Invoke(true);
             }
             else
             {
                 Log("Failed to Socket Open.", DebugLevel.INFO);
-                OnInit?.Invoke(true);
+                onInit?.Invoke(true);
             }
         }
 
@@ -71,7 +70,7 @@ namespace GameWorkstore.NetworkLibrary
         /// <summary>
         /// Prepare your server to receive connections here!
         /// </summary>
-        protected virtual void Preinitialize() { }
+        protected virtual void PreInitialize() { }
 
         public void Shutdown()
         {
@@ -84,31 +83,28 @@ namespace GameWorkstore.NetworkLibrary
             // queues
             if (SimulationTime() > _lastQueueSolver + _queueSolverTime)
             {
-                foreach (var q in _classes)
+                foreach (var q in _classes.Where(q => q.HasPacket()))
                 {
-                    if (q.HasPacket())
+                    foreach (var connId in Connections.Keys)
                     {
-                        foreach (var connId in _connections.Keys)
-                        {
-                            QPacket packet = q.GetQPacket(connId);
-                            Send(connId, packet.Data, packet.Channel);
-                        }
-                        q.ClearPacket();
+                        var packet = q.GetQPacket(connId);
+                        Send(connId, packet.Data, packet.Channel);
                     }
+                    q.ClearPacket();
                 }
                 _lastQueueSolver = SimulationTime();
             }
-            // preconnections has 60 seconds to communicate, or drop
-            DisconnectTimeoutPreconnections();
+            // preConnections has 15 seconds to communicate, or drop
+            DisconnectTimeoutPreConnections();
             // default
             base.UpdateConnection();
         }
 
         public bool Send(short connId, NetworkPacketBase packet, byte channel)
         {
-            if (_connections.ContainsKey(connId))
+            if (Connections.ContainsKey(connId))
             {
-                if (!_connections[connId].SendByChannel(packet, channel))
+                if (!Connections[connId].SendByChannel(packet, channel))
                 {
                     Log("Error while sending packet[" + packet + "] to connection[" + connId + "]", DebugLevel.WARNING);
                     return false;
@@ -125,9 +121,9 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool Send(short connId, IMessage packet, byte channel)
         {
-            if (_connections.ContainsKey(connId))
+            if (Connections.ContainsKey(connId))
             {
-                if (!_connections[connId].SendByChannel(packet, channel))
+                if (!Connections[connId].SendByChannel(packet, channel))
                 {
                     Log("Error while sending packet[" + packet + "] to connection[" + connId + "]", DebugLevel.WARNING);
                     return false;
@@ -144,16 +140,16 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool SendToAll(NetworkPacketBase packet, byte channel, int ignoreConnectionId = -1)
         {
-            bool success = true;
+            var success = true;
             if (ignoreConnectionId < 0)
             {
-                foreach (var connId in _connections.Keys)
+                foreach (var connId in Connections.Keys)
                 {
                     success &= Send(connId, packet, channel);
                 }
                 return success;
             }
-            foreach (var connId in _connections.Keys)
+            foreach (var connId in Connections.Keys)
             {
                 if (ignoreConnectionId == connId)
                 {
@@ -166,16 +162,16 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool SendToAll(IMessage packet, byte channel, int ignoreConnectionId = -1)
         {
-            bool success = true;
+            var success = true;
             if (ignoreConnectionId < 0)
             {
-                foreach (var connId in _connections.Keys)
+                foreach (var connId in Connections.Keys)
                 {
                     success &= Send(connId, packet, channel);
                 }
                 return success;
             }
-            foreach (var connId in _connections.Keys)
+            foreach (var connId in Connections.Keys)
             {
                 if (ignoreConnectionId == connId)
                 {
@@ -188,10 +184,10 @@ namespace GameWorkstore.NetworkLibrary
         
         public bool SendToConnections(NetworkPacketBase msg, byte channel, IEnumerable<short> connectionIds)
         {
-            bool success = true;
+            var success = true;
             foreach (var connId in connectionIds)
             {
-                if (_connections.ContainsKey(connId))
+                if (Connections.ContainsKey(connId))
                 {
                     success &= Send(connId, msg, channel);
                 }
@@ -201,10 +197,10 @@ namespace GameWorkstore.NetworkLibrary
 
         public bool SendToConnections(IMessage msg, byte channel, IEnumerable<short> connectionIds)
         {
-            bool success = true;
+            var success = true;
             foreach (var connId in connectionIds)
             {
-                if (_connections.ContainsKey(connId))
+                if (Connections.ContainsKey(connId))
                 {
                     success &= Send(connId, msg, channel);
                 }
@@ -219,53 +215,53 @@ namespace GameWorkstore.NetworkLibrary
                 Log("ConnectionError:[ID:" + connectionId + "][ERROR:" + (NetworkError)error + "]", DebugLevel.ERROR);
                 return;
             }
-            if (_connections.Count < MATCHSIZE)
+            if (Connections.Count < MatchSize)
             {
                 Log("PreConnected:[ID:" + connectionId + "]", DebugLevel.INFO);
                 // request authentication
-                var conn = CreatePreconnection(connectionId);
+                var conn = CreatePreConnection(connectionId);
                 var authRequest = new AuthenticationRequestPacket()
                 {
                     ServerConnectionId = connectionId
                 };
-                conn.SendByChannel(authRequest, CHANNEL_RELIABLE);
+                conn.SendByChannel(authRequest, ChannelReliable);
             }
             else
             {
-                RefusePreconnection(connectionId);
+                RefusePreConnection(connectionId);
             }
         }
 
         /// <summary>
         /// Authenticate player using payload and invokes AuthenticateConnection of RefuseConnection as result
         /// </summary>
-        /// <param name="packet"></param>
+        /// <param name="authentication"></param>
         protected virtual void HandleAuthentication(AuthenticationResponsePacket authentication)
         {
             //Accepts all authenticated until fill up:
-            if(_connections.Count < MATCHSIZE && authentication.Payload.Equals("default"))
+            if(Connections.Count < MatchSize && authentication.Payload.Equals("default"))
             {
-                AuthenticatePreconnection(authentication.conn.LocalConnectionId);
+                AuthenticatePreConnection(authentication.conn.LocalConnectionId);
             }
             else
             {
-                RefusePreconnection(authentication.conn.LocalConnectionId);
+                RefusePreConnection(authentication.conn.LocalConnectionId);
             }
         }
 
-        protected void AuthenticatePreconnection(short connectionId)
+        protected void AuthenticatePreConnection(short connectionId)
         {
-            RemovePreconnection(connectionId);
+            RemovePreConnection(connectionId);
             Log("Authenticated:[ID:" + connectionId + "]", DebugLevel.INFO);
             var conn = CreateConnection(connectionId);
             ServiceProvider.GetService<EventService>().StartCoroutine(StartClient(conn));
         }
 
-        protected void RefusePreconnection(short connectionId)
+        protected void RefusePreConnection(short connectionId)
         {
             Log("Refused:[ID:" + connectionId + "]", DebugLevel.INFO);
-            RemovePreconnection(connectionId);
-            NetworkTransport.Disconnect(SOCKETID, connectionId, out _);
+            RemovePreConnection(connectionId);
+            NetworkTransport.Disconnect(SocketId, connectionId, out _);
         }
 
         private IEnumerator StartClient(NetConnection conn)
@@ -277,12 +273,12 @@ namespace GameWorkstore.NetworkLibrary
             }
             else
             {
-                packets = new ObjectSyncPacket[] { new ObjectSyncPacket() { IsLast = true } };
+                packets = new[] { new ObjectSyncPacket() { IsLast = true } };
             }
 
-            for (int i = 0; i < 3; i++)
+            for (var i = 0; i < 3; i++)
             {
-                if (!Send(conn.LocalConnectionId, new ObjectSyncNetworkTimePacket() { NetworkTime = GetHostNetworkTime() }, CHANNEL_RELIABLE))
+                if (!Send(conn.LocalConnectionId, new ObjectSyncNetworkTimePacket() { NetworkTime = GetHostNetworkTime() }, ChannelReliable))
                 {
                     Log("Failed to Send SyncNetworkPacket", DebugLevel.ERROR);
                 }
@@ -292,7 +288,7 @@ namespace GameWorkstore.NetworkLibrary
 
             foreach (var packet in packets)
             {
-                if (!Send(conn.LocalConnectionId, packet, CHANNEL_RELIABLE_ORDERED))
+                if (!Send(conn.LocalConnectionId, packet, ChannelReliableOrdered))
                 {
                     Log("Failed to Send SyncPacket", DebugLevel.ERROR);
                 }
@@ -306,7 +302,7 @@ namespace GameWorkstore.NetworkLibrary
         protected override void HandleDisconnect(short connectionId, byte error)
         {
             // connection
-            if (_connections.TryGetValue(connectionId, out NetConnection conn))
+            if (Connections.TryGetValue(connectionId, out var conn))
             {
                 conn.Disconnect();
 
@@ -318,7 +314,7 @@ namespace GameWorkstore.NetworkLibrary
                         Log("Client disconnect by Error, connectionId: " + connectionId + " error: " + networkError, DebugLevel.WARNING);
                     }
                     else
-                    {
+                    { 
                         Log("Client disconnect by Timeout, connectionId: " + connectionId + " error: " + networkError, DebugLevel.INFO);
                     }
                 }
@@ -332,46 +328,40 @@ namespace GameWorkstore.NetworkLibrary
                 return;
             }
             // preconnection
-            if (_preconnections.TryGetValue(connectionId, out conn))
+            if (PreConnections.TryGetValue(connectionId, out conn))
             {
                 conn.Disconnect();
-                RemovePreconnection(connectionId);
+                RemovePreConnection(connectionId);
             }
         }
 
         protected override void HandleDataReceived(short connectionId, int channelId, ref byte[] buffer, int receiveSize, byte error)
         {
-            if (_connections.TryGetValue(connectionId, out NetConnection conn))
+            if (Connections.TryGetValue(connectionId, out var conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
                 return;
             }
-
-            if(_preconnections.TryGetValue(connectionId, out conn))
+            if(PreConnections.TryGetValue(connectionId, out conn))
             {
                 conn.TransportReceive(buffer, receiveSize, channelId);
                 return;
             }
         }
 
-        public override void Log(string msg, DebugLevel level)
+        protected override void Log(string msg, DebugLevel level)
         {
             DebugMessege.Log("[Server]:" + msg, level);
         }
-
+        
         public void AddQueueble(Func<bool> hasPacket, Func<int, QPacket> getQPacket, Func<bool> clearPacket)
         {
             _classes.Add(new QPacketClass() { HasPacket = hasPacket, GetQPacket = getQPacket, ClearPacket = clearPacket });
         }
 
-        public bool TriggerCreate(NetworkHash128 hash, NetConnection authority)
+        public bool TriggerCreate(NetworkHash128 hash, NetConnection authority, Action<NetworkBaseBehaviour> onExternalCompleted = null)
         {
-            return TriggerCreate(hash, authority, null);
-        }
-
-        public bool TriggerCreate(NetworkHash128 hash, NetConnection authority, Action<NetworkBaseBehaviour> OnExternalCompleted)
-        {
-            return TriggerCreate(hash, authority, Vector3.zero, Quaternion.identity, null, null, OnExternalCompleted);
+            return TriggerCreate(hash, authority, Vector3.zero, Quaternion.identity, null, null, onExternalCompleted);
         }
 
         public bool TriggerCreate(NetworkHash128 hash, NetConnection authority, Vector3 position, Quaternion rotation, byte[] internalParams, byte[] sharedParams, Action<NetworkBaseBehaviour> OnExternalCompleted)
@@ -408,31 +398,28 @@ namespace GameWorkstore.NetworkLibrary
         public bool DisconnectPlayer(short connectionId)
         {
             HandleDisconnect(connectionId, 0);
-            return NetworkTransport.Disconnect(SOCKETID, connectionId, out _);
+            return NetworkTransport.Disconnect(SocketId, connectionId, out _);
         }
 
-        private void DisconnectTimeoutPreconnections()
+        private void DisconnectTimeoutPreConnections()
         {
-            var preconnids = _preconnections.Where(Timeout).Select(ConnectionId).ToArray();
-            foreach (var preconn in preconnids)
+            foreach (var conn in PreConnections.Where(Timeout).Select(ConnectionId))
             {
-                RefusePreconnection(preconn);
+                RefusePreConnection(conn);
             }
         }
 
         public void DisconnectAllPlayers()
         {
-            var preconnids = _preconnections.Select(ConnectionId).ToArray();
-            foreach (var preconn in preconnids)
+            foreach (var preConn in PreConnections.Select(ConnectionId))
             {
-                RefusePreconnection(preconn);
+                RefusePreConnection(preConn);
             }
-            var connids = _connections.Select(ConnectionId).ToArray();
-            foreach (var conn in connids)
+            foreach (var conn in Connections.Select(ConnectionId))
             {
                 DisconnectPlayer(conn);
             }
-            _connections.Clear();
+            Connections.Clear();
         }
 
         public static float GetHostNetworkTime()
@@ -444,21 +431,22 @@ namespace GameWorkstore.NetworkLibrary
         {
             OnObjectCreated.Invoke(behaviour);
 
-            bool send = true;
-            foreach (var conn in _connections)
+            var send = true;
+            foreach (var conn in Connections)
             {
-                bool auth = behaviour.connectionId == conn.Key;
+                var auth = behaviour.connectionId == conn.Key;
+                var transform = behaviour.transform;
                 send &= Send(conn.Key, new ObjectSyncDeltaCreatePacket()
                 {
                     ObjectId = behaviour.networkInstanceId,
                     ObjectName = behaviour.networkHash,
-                    Position = behaviour.transform.position,
-                    Quaternion = behaviour.transform.rotation,
+                    Position = transform.position,
+                    Quaternion = transform.rotation,
                     Authority = auth,
                     InternalParams = auth ? behaviour.internalParams : new byte[0],
                     SharedParams = behaviour.sharedParams
                 },
-                CHANNEL_ALLCOSTDELIVERY
+                ChannelAllCostDelivery
                 );
             }
 
@@ -472,13 +460,13 @@ namespace GameWorkstore.NetworkLibrary
         {
             OnObjectDestroyed.Invoke(behaviour);
 
-            bool send = true;
-            foreach (var conn in _connections)
+            var send = true;
+            foreach (var conn in Connections)
             {
                 send &= Send(
                     conn.Key,
                     new ObjectSyncDeltaDestroyPacket() { ObjectId = behaviour.networkInstanceId },
-                    CHANNEL_ALLCOSTDELIVERY
+                    ChannelAllCostDelivery
                 );
             }
 
@@ -495,7 +483,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public NetConnection FindOwner(NetworkBaseBehaviour behaviour)
         {
-            foreach (var conn in _connections.Values)
+            foreach (var conn in Connections.Values)
             {
                 if (conn.LocalConnectionId == behaviour.connectionId)
                 {
@@ -510,7 +498,7 @@ namespace GameWorkstore.NetworkLibrary
             return GetRTT(connectionId) / 1000f;
         }
 
-        public int GetPort() { return PORT; }
+        public int GetPort() { return Port; }
 
         /// <summary>
         /// Helper function for LINQ
@@ -542,9 +530,9 @@ namespace GameWorkstore.NetworkLibrary
 
     internal enum NetworkServerState
     {
-        NONE,
-        STARTED,
-        TERMINATED
+        None,
+        Started,
+        Terminated
     }
 
     internal struct QPacketClass

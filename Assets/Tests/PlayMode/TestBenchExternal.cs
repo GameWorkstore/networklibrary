@@ -32,7 +32,7 @@ public class TestBenchExternal
             var sending = new TestingPackage(){
                 Value = TestServerConsts.SimpleValue
             };
-            client.Send(sending, client.CHANNEL_RELIABLE);
+            client.Send(sending, client.ChannelReliable);
         });
 
         yield return gate;
@@ -62,7 +62,7 @@ public class TestBenchExternal
                 Value = TestServerConsts.SimpleValue
             };
             Debug.Log(sending.ToByteArray().ToDebugString());
-            client.Send(sending, client.CHANNEL_RELIABLE);
+            client.Send(sending, client.ChannelReliable);
         });
 
         yield return gate;

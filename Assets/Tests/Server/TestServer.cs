@@ -12,8 +12,25 @@ public class Gate : CustomYieldInstruction
     public override bool keepWaiting => !_released;
 }
 
-public class TestingServer : NetworkHost { }
-public class TestingClient : NetworkClient { }
+public class TestingServer : NetworkHost
+{
+    public readonly bool ConstructorWasCalled;
+
+    public TestingServer()
+    {
+        ConstructorWasCalled = ContainsHandler<NetworkAlivePacket>(IsAlive);
+    }
+}
+
+public class TestingClient : NetworkClient
+{
+    public readonly bool ConstructorWasCalled;
+
+    public TestingClient()
+    {
+        ConstructorWasCalled = ContainsHandler<NetworkAlivePacket>(IsAlive);
+    }
+}
 public class TestingPackage : NetworkPacketBase
 {
     public string Value;
@@ -62,14 +79,14 @@ public class TestServer : MonoBehaviour
             var packet = new TestingPackage(){
                 Value = TestServerConsts.SimpleValue
             };
-            instance.Send(t.conn.ServerConnectionId, packet, instance.CHANNEL_RELIABLE);
+            instance.Send(t.conn.ServerConnectionId, packet, instance.ChannelReliable);
         });
         instance.AddProtoHandler<TestingSimpleValueProtobuf>(t => {
             var packet = new TestingSimpleValueProtobuf()
             {
                 Value = TestServerConsts.SimpleValue
             };
-            instance.Send(t.Conn.ServerConnectionId, packet, instance.CHANNEL_RELIABLE);
+            instance.Send(t.Conn.ServerConnectionId, packet, instance.ChannelReliable);
         }, false);
         instance.AddProtoHandler<TestingComplexStructProtobuf>(t => {
             var packet = new TestingComplexStructProtobuf()

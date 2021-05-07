@@ -92,7 +92,7 @@ namespace GameWorkstore.NetworkLibrary
                 Function = function
             };
 
-            if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
+            if (_handlers.TryGetValue(code, out var array))
             {
                 if (array.Contains(handler))
                 {
@@ -103,23 +103,22 @@ namespace GameWorkstore.NetworkLibrary
             }
             else
             {
-                var nArray = new HighSpeedArray<NetworkHandlerBase>(4);
-                nArray.Add(handler);
+                var nArray = new HighSpeedArray<NetworkHandlerBase>(4)
+                {
+                    handler
+                };
                 _handlers.Add(code, nArray);
             }
         }
 
-        internal bool ContainsHandler<T>(uint code, Action<T> function) where T : NetworkPacketBase, new()
+        public bool ContainsHandler<T>(uint code, Action<T> function) where T : NetworkPacketBase, new()
         {
-            if (_handlers.TryGetValue(code, out HighSpeedArray<NetworkHandlerBase> array))
+            if (!_handlers.TryGetValue(code, out var array)) return false;
+            var handler = new NetworkHandler<T>
             {
-                var handler = new NetworkHandler<T>
-                {
-                    Function = function
-                };
-                return array.Contains(handler);
-            }
-            return false;
+                Function = function
+            };
+            return array.Contains(handler);
         }
 
         public bool UnregisterHandler<T>(uint code, Action<T> function) where T : NetworkPacketBase, new()

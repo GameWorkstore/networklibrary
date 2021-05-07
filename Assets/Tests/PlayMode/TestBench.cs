@@ -50,6 +50,29 @@ namespace Testing
             Assert.AreEqual(pkt.Value,recv.Value);
         }
 
+        [Test]
+        public void ConstructorIsCalled()
+        {
+            var server = new TestingServer();
+            Assert.True(server.ConstructorWasCalled);
+            var client = new TestingClient();
+            Assert.True(client.ConstructorWasCalled);
+        }
+        
+        [Test]
+        public void DestructorIsCalled()
+        {
+            using (var server = new TestingServer())
+            {
+                using (var client = new TestingClient())
+                {
+                    Assert.AreEqual(2, BaseConnection.TransportLayerInitializations());
+                }
+                Assert.AreEqual(1, BaseConnection.TransportLayerInitializations());
+            }
+            Assert.AreEqual(0, BaseConnection.TransportLayerInitializations());
+        }
+
         /// <summary>
         /// Test if we can create and destroy server.
         /// </summary>
@@ -126,7 +149,7 @@ namespace Testing
                     {
                         Value = sendingContent
                     };
-                    server.SendToAll(sending, server.CHANNEL_RELIABLE);
+                    server.SendToAll(sending, server.ChannelReliable);
                 });
             });
             yield return gate;
@@ -154,7 +177,7 @@ namespace Testing
                     {
                         Value = sendingContent
                     };
-                    client.Send(sending, server.CHANNEL_RELIABLE);
+                    client.Send(sending, server.ChannelReliable);
                 });
             });
             yield return gate;
@@ -196,7 +219,7 @@ namespace Testing
                     {
                         Value = sendingContent
                     };
-                    client.Send(sending, server.CHANNEL_RELIABLE);
+                    client.Send(sending, server.ChannelReliable);
                 });
             });
             yield return gate;
@@ -224,7 +247,7 @@ namespace Testing
                     {
                         Value = sendingContent
                     };
-                    server.SendToAll(sending, server.CHANNEL_RELIABLE);
+                    server.SendToAll(sending, server.ChannelReliable);
                 });
             });
             yield return gate;
@@ -263,7 +286,7 @@ namespace Testing
                             }
                         }
                     };
-                    client.Send(sending, server.CHANNEL_RELIABLE);
+                    client.Send(sending, server.ChannelReliable);
                 });
             });
             yield return gate;
@@ -302,7 +325,7 @@ namespace Testing
                             }
                         }
                     };
-                    server.SendToAll(sending, server.CHANNEL_RELIABLE);
+                    server.SendToAll(sending, server.ChannelReliable);
                 });
             });
             yield return gate;
@@ -328,8 +351,8 @@ namespace Testing
                     {
                         BValue = "bcd"
                     };
-                    server.SendToAll(sendingB, server.CHANNEL_RELIABLE);
-                    server.SendToAll(sendingA, server.CHANNEL_RELIABLE);
+                    server.SendToAll(sendingB, server.ChannelReliable);
+                    server.SendToAll(sendingA, server.ChannelReliable);
                 });
                 client.Connect(ip, port, (connected,conn) =>
                 {

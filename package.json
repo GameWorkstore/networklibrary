@@ -1,0 +1,18 @@
+{
+  "name": "com.gameworkstore.networklibrary",
+  "version": "0.4.4",
+  "displayName": "GameWorkstore NetLibrary",
+  "description": "Network Library for Unity Projects based on old UNET!",
+  "unity": "2020.1",
+  "icon": ".icon.png",
+  "keywords": [ "net", "network", "multiplayer", "gameserver" ],
+  "author": {
+    "name": "Game Workstore",
+    "email": "contact@gameworkstore.com",
+    "url": "https://gameworkstore.com"
+  },
+  "dependencies": {
+    "com.gameworkstore.patterns": "1.1.2",
+    "com.gameworkstore.googleprotobufunity": "3.15.2004"
+  }
+}

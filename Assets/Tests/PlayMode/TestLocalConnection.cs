@@ -12,83 +12,9 @@ using Debug = UnityEngine.Debug;
 
 namespace Testing
 {
-    public class TestBench
+    public class TestLocalConnection
     {
-        [Test]
-        public void HashCode()
-        {
-            int original = -124526876;
-            uint target = (uint)original;
-            int recovered = (int)target;
-            Assert.AreEqual(original,recovered);
-        }
-
-        [Test]
-        public void HashesAreEqual()
-        {
-            var pktCode = new TestingSimpleValueProtobuf().Code();
-            var hardCode = ProtobufPacketExtensions.Code<TestingSimpleValueProtobuf>();
-            Assert.AreEqual(pktCode,hardCode);
-        }
-
-        [Test]
-        public void HashesAreDifferent()
-        {
-            var hardCodeA = ProtobufPacketExtensions.Code<TestingSimpleValueProtobuf>();
-            var hardCodeB = ProtobufPacketExtensions.Code<TestingComplexStructProtobuf>();
-            Assert.AreNotEqual(hardCodeA,hardCodeB);
-        }
-
-        [Test]
-        public void ProtobufToArrayAndRebuild()
-        {
-            var pkt = new TestingSimpleValueProtobuf(){
-                Value = TestServerConsts.SimpleValue
-            };
-            var data = pkt.ToByteArray();
-            var recv = TestingSimpleValueProtobuf.Parser.ParseFrom(data);
-            Assert.AreEqual(pkt.Value,recv.Value);
-        }
-
-        [Test]
-        public void ConstructorIsCalled()
-        {
-            var server = new TestingServer();
-            Assert.True(server.ConstructorWasCalled);
-            var client = new TestingClient();
-            Assert.True(client.ConstructorWasCalled);
-        }
-        
-        [Test]
-        public void DestructorIsCalled()
-        {
-            using (var server = new TestingServer())
-            {
-                using (var client = new TestingClient())
-                {
-                    Assert.AreEqual(2, BaseConnection.TransportLayerInitializations());
-                }
-                Assert.AreEqual(1, BaseConnection.TransportLayerInitializations());
-            }
-            Assert.AreEqual(0, BaseConnection.TransportLayerInitializations());
-        }
-
-        /// <summary>
-        /// Test if we can create and destroy server.
-        /// </summary>
-        [UnityTest]
-        public IEnumerator Create_Destroy()
-        {
-            const int port = 1000;
-            var server = new TestingServer();
-            var gate = new Gate();
-            server.Init(port, initialized =>
-            {
-                gate.Release();
-                Assert.True(initialized);
-            });
-            yield return gate;
-        }
+        private static int Port(int offset) { return 2000 + offset; }
 
         /// <summary>
         /// Test if we can create, connect, disconnect and destroy a match.
@@ -96,14 +22,13 @@ namespace Testing
         [UnityTest]
         public IEnumerator Create_Connect_Disconnect_Destroy()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1001;
+            int port = Port(0);
             var server = new TestingServer();
             var client = new TestingClient();
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     gate.Release();
                     Assert.True(connected);
@@ -112,33 +37,17 @@ namespace Testing
             yield return gate;
         }
 
-        [Test]
-        public void Add_Remove_Handler()
-        {
-            var server = new TestingServer();
-            Action<TestingPackage> action = t =>
-            {
-                return;
-            };
-            server.AddHandler(action);
-            bool contains = server.ContainsHandler(action);
-            server.RemoveHandler(action);
-            bool notContains = !server.ContainsHandler(action);
-            Assert.True(contains && notContains);
-        }
-
         [UnityTest]
         public IEnumerator SendPackageFromServerToClient()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1002;
+            int port = Port(1);
             const string sendingContent = "sha1234571325646578923";
             var server = new TestingServer();
             var client = new TestingClient();
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     client.AddHandler<TestingPackage>(package =>
                     {
@@ -158,15 +67,14 @@ namespace Testing
         [UnityTest]
         public IEnumerator SendPackageFromClientToServer()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1003;
+            int port = Port(2);
             const string sendingContent = "cli1234571325646578923";
             var server = new TestingServer();
             var client = new TestingClient();
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     server.AddHandler<TestingPackage>(package =>
                     {
@@ -183,32 +91,17 @@ namespace Testing
             yield return gate;
         }
 
-        [Test]
-        public void Add_Remove_ProtoHandler()
-        {
-            var server = new TestingServer();
-            Action<ProtobufPacket<TestingSimpleValueProtobuf>> action = t =>
-            {
-                return;
-            };
-            server.AddProtoHandler(action);
-            Assert.True(server.ContainsProtoHandler(action));
-            server.RemoveProtoHandler(action);
-            Assert.False(server.ContainsProtoHandler(action));
-        }
-
         [UnityTest]
         public IEnumerator SendProtobufFromClientToServer()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1004;
+            int port = Port(3);
             var server = new TestingServer();
             var client = new TestingClient();
             const string sendingContent = "cli1234571325646578923";
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     server.AddProtoHandler<TestingSimpleValueProtobuf>(package =>
                     {
@@ -228,15 +121,14 @@ namespace Testing
         [UnityTest]
         public IEnumerator SendProtobufFromServerToClient()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1005;
+            int port = Port(4);
             var server = new TestingServer();
             var client = new TestingClient();
             const string sendingContent = "cli1234571325646578923";
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     client.AddProtoHandler<TestingSimpleValueProtobuf>(package =>
                     {
@@ -256,8 +148,7 @@ namespace Testing
         [UnityTest]
         public IEnumerator SendComplexProtobufFromClientToServer()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1006;
+            int port = Port(5);
             var server = new TestingServer();
             var client = new TestingClient();
             const int Value1 = 100;
@@ -265,7 +156,7 @@ namespace Testing
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     server.AddProtoHandler<TestingComplexStructProtobuf>(package =>
                     {
@@ -295,8 +186,7 @@ namespace Testing
         [UnityTest]
         public IEnumerator SendComplexProtobufFromServerToClient()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1007;
+            int port = Port(6);
             var server = new TestingServer();
             var client = new TestingClient();
             const int Value1 = 100;
@@ -304,7 +194,7 @@ namespace Testing
             var gate = new Gate();
             server.Init(port, initialized =>
             {
-                client.Connect(ip, port, (connected,_) =>
+                client.ConnectToLocalServer(server, (connected,_) =>
                 {
                     client.AddProtoHandler<TestingComplexStructProtobuf>(package =>
                     {
@@ -334,10 +224,9 @@ namespace Testing
         [UnityTest]
         public IEnumerator SendUnknownPacketOnlyTriggersWarnings()
         {
-            const string ip = "127.0.0.1";
-            const int port = 1008;
-            var server = new TestingServer();
-            var client = new TestingClient();
+            int port = Port(7);
+            using var server = new TestingServer();
+            using var client = new TestingClient();
             var gate = new Gate();
             server.Init(port, initialized =>
             {
@@ -354,9 +243,9 @@ namespace Testing
                     server.SendToAll(sendingB, server.ChannelReliable);
                     server.SendToAll(sendingA, server.ChannelReliable);
                 });
-                client.Connect(ip, port, (connected,conn) =>
+                client.ConnectToLocalServer(server, (connected,conn) =>
                 {
-                    conn.DebugPackets = true;
+                    conn.Debug = true;
                     client.AddHandler<TestingPackageB>(package =>
                     {
                         gate.Release();

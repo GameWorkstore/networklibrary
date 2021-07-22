@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace GameWorkstore.NetworkLibrary
 {
-    class ChannelBuffer : IDisposable
+    public class ChannelBuffer
     {
-        private readonly NetConnection _connection;
+        private readonly INetConnection _connection;
 
         private ChannelPacket _currentPacket;
 
@@ -17,15 +17,15 @@ namespace GameWorkstore.NetworkLibrary
         bool m_IsBroken;
         int _maxPendingPacketCount;
 
-        const int _maxFreePacketCount = 512; //  this is for all connections. maybe make this configurable
+        const int _maxFreePacketCount = 256; //  this is for all connections. maybe make this configurable
         const int _defaultMaxPendingPacketCount = 16;  // this is per connection. each is around 1400 bytes (MTU)
 
-        private readonly Queue<ChannelPacket> _pendingPackets;
-        private static List<ChannelPacket> _freePackets;
+        private readonly Queue<ChannelPacket> _pendingPackets = null;
+        private static Queue<ChannelPacket> _freePackets = new Queue<ChannelPacket>();
         internal static int pendingPacketCount; // this is across all connections. only used for profiler metrics.
 
         // config
-        public float maxDelay = 0.01f;
+        public float MaxDelay = 0.01f;
 
         // stats
         private float _lastBufferedMessageCountTimer = Time.realtimeSinceStartup;
@@ -45,7 +45,7 @@ namespace GameWorkstore.NetworkLibrary
         // We need to reserve some space for header information, this will be taken off the total channel buffer size
         private const int _packetHeaderReserveSize = 100;
 
-        public ChannelBuffer(NetConnection conn, int bufferSize, byte cid, bool isReliable)
+        public ChannelBuffer(INetConnection conn, int bufferSize, byte cid, bool isReliable)
         {
             _connection = conn;
             _maxPacketSize = bufferSize - _packetHeaderReserveSize;
@@ -54,52 +54,7 @@ namespace GameWorkstore.NetworkLibrary
             _channelId = cid;
             _maxPendingPacketCount = _defaultMaxPendingPacketCount;
             _isReliable = isReliable;
-            if (isReliable)
-            {
-                _pendingPackets = new Queue<ChannelPacket>();
-                if (_freePackets == null)
-                {
-                    _freePackets = new List<ChannelPacket>();
-                }
-            }
-        }
-
-        // Track whether Dispose has been called.
-        bool m_Disposed;
-
-        public void Dispose()
-        {
-            Dispose(true);
-            // Take yourself off the Finalization queue
-            // to prevent finalization code for this object
-            // from executing a second time.
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            // Check to see if Dispose has already been called.
-            if (!m_Disposed)
-            {
-                if (disposing)
-                {
-                    if (_pendingPackets != null)
-                    {
-                        while (_pendingPackets.Count > 0)
-                        {
-                            pendingPacketCount -= 1;
-
-                            var packet = _pendingPackets.Dequeue();
-                            if (_freePackets.Count < _maxFreePacketCount)
-                            {
-                                _freePackets.Add(packet);
-                            }
-                        }
-                        _pendingPackets.Clear();
-                    }
-                }
-            }
-            m_Disposed = true;
+            _pendingPackets = isReliable ? new Queue<ChannelPacket>() : null;
         }
 
         public bool SetOption(ChannelOption option, int value)
@@ -127,7 +82,7 @@ namespace GameWorkstore.NetworkLibrary
 
         public void CheckInternalBuffer()
         {
-            if (Time.realtimeSinceStartup - _lastFlushTime > maxDelay && !_currentPacket.IsEmpty())
+            if (Time.realtimeSinceStartup - _lastFlushTime > MaxDelay && !_currentPacket.IsEmpty())
             {
                 SendInternalBuffer();
                 _lastFlushTime = Time.realtimeSinceStartup;
@@ -219,38 +174,29 @@ namespace GameWorkstore.NetworkLibrary
             }
 
             _currentPacket.Write(bytes, bytesToSend);
-            if (maxDelay == 0.0f)
+            if (MaxDelay == 0.0f)
             {
                 return SendInternalBuffer();
             }
             return true;
         }
 
-        void QueuePacket()
+        private void QueuePacket()
         {
             pendingPacketCount += 1;
             _pendingPackets.Enqueue(_currentPacket);
             _currentPacket = AllocPacket();
         }
 
-        ChannelPacket AllocPacket()
+        private ChannelPacket AllocPacket()
         {
 #if UNITY_EDITOR
             NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIPending, "msg", pendingPacketCount);
 #endif
-            if (_freePackets.Count == 0)
-            {
-                return new ChannelPacket(_maxPacketSize, _isReliable);
-            }
-
-            var packet = _freePackets[_freePackets.Count - 1];
-            _freePackets.RemoveAt(_freePackets.Count - 1);
-
-            packet.Reset();
-            return packet;
+            return _freePackets.Count > 0? _freePackets.Dequeue() : new ChannelPacket(_maxPacketSize, _isReliable);
         }
 
-        static void FreePacket(ChannelPacket packet)
+        private static void FreePacket(ChannelPacket packet)
         {
 #if UNITY_EDITOR
             NetworkDetailStats.SetStat(NetworkDetailStats.NetworkDirection.Outgoing, UnityTransportTypes.HLAPIPending, "msg", pendingPacketCount);
@@ -260,7 +206,7 @@ namespace GameWorkstore.NetworkLibrary
                 // just discard this packet, already tracking too many free packets
                 return;
             }
-            _freePackets.Add(packet);
+            _freePackets.Enqueue(packet);
         }
 
         public bool SendInternalBuffer()

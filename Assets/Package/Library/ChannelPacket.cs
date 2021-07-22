@@ -36,7 +36,7 @@ namespace GameWorkstore.NetworkLibrary
             return m_Position + numBytes <= m_Buffer.Length;
         }
 
-        public bool SendToTransport(NetConnection conn, int channelId)
+        public bool SendToTransport(INetConnection conn, int channelId)
         {
             byte error;
 

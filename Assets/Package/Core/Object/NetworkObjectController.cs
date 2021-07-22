@@ -140,7 +140,7 @@ namespace GameWorkstore.NetworkLibrary
         private List<NetworkInstanceId> _lateDestroy = new List<NetworkInstanceId>();
 
         ObjectHandlers handler;
-        public void SetSyncPacket(ObjectSyncPacket evt, NetConnection conn)
+        public void SetSyncPacket(ObjectSyncPacket evt, INetConnection conn)
         {
             for (int i = 0; i < evt.ObjectName.Length; i++)
             {
@@ -184,7 +184,7 @@ namespace GameWorkstore.NetworkLibrary
             }
         }
 
-        internal void SetSyncPacket(ObjectSyncDeltaCreatePacket packet, NetConnection conn)
+        internal void SetSyncPacket(ObjectSyncDeltaCreatePacket packet, INetConnection conn)
         {
             if (_dictionaryHandlers.TryGetValue(packet.ObjectName, out handler))
             {
@@ -292,7 +292,7 @@ namespace GameWorkstore.NetworkLibrary
     {
         public NetworkInstanceId ObjectId;
         public NetworkHash128 ObjectName;
-        public NetConnection Authority;
+        public INetConnection Authority;
         public Vector3 Position;
         public Quaternion Rotation;
         public byte[] InternalParams;

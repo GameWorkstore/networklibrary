@@ -1,3 +1,4 @@
+using System;
 using GameWorkstore.NetworkLibrary;
 using GameWorkstore.Patterns;
 using Google.Protobuf;
@@ -73,7 +74,7 @@ public class TestServer : MonoBehaviour
         DebugMessege.SetLogLevel(DebugLevel.INFO);
         var instance = ServiceProvider.GetService<TestingServerService>().Instance;
         instance.OnSocketConnection.Register(t => {
-            t.DebugPackets = true;
+            t.Debug = true;
         });
         instance.AddHandler<TestingPackage>(t => {
             var packet = new TestingPackage(){

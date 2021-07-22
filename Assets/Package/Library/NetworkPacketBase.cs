@@ -8,7 +8,7 @@ namespace GameWorkstore.NetworkLibrary
     // serialization functions, we'll code generate it for them when they omit it.
     public abstract class NetworkPacketBase
     {
-        public NetConnection conn;
+        public INetConnection conn;
 
         // De-serialize the contents of the reader into this message
         public abstract void Deserialize(NetReader reader);
@@ -45,7 +45,7 @@ namespace GameWorkstore.NetworkLibrary
 
     public class ProtobufPacket<T> where T : IMessage
     {
-        public NetConnection Conn;
+        public INetConnection Conn;
         public T Proto;
     }
 

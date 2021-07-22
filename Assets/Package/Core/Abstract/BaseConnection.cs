@@ -4,24 +4,28 @@ using UnityEngine;
 using UnityEngine.Networking;
 using GameWorkstore.Patterns;
 using Google.Protobuf;
+using System.Collections;
 
 namespace GameWorkstore.NetworkLibrary
 {
     public abstract class BaseConnection : IDisposable
     {
-        private readonly EventService _eventService;
+        protected readonly EventService _eventService;
+        protected const int DefaultPort = 8080;
+        protected const int MaxNumberOfHosts = 16;
 
         protected short SocketId;
-        protected int Port = 8080;
+        protected int Port = DefaultPort;
         protected int PreConnectionSize = 8;
         protected int MatchSize = 8;
         protected int BotSize = 0;
         protected readonly NetworkHandlers PreHandlers = new NetworkHandlers();
         protected readonly NetworkHandlers Handlers = new NetworkHandlers();
-        protected readonly Dictionary<short, NetConnection> PreConnections = new Dictionary<short, NetConnection>();
-        protected readonly Dictionary<short, NetConnection> Connections = new Dictionary<short, NetConnection>();
+        protected readonly Dictionary<short, INetConnection> PreConnections = new Dictionary<short, INetConnection>();
+        protected readonly Dictionary<short, INetConnection> Connections = new Dictionary<short, INetConnection>();
 
-        private static int _networkInitialization;
+        private static int _networkInitialization = 0;
+        private static int _hostInitialization = 0;
         private static uint _uniqueId = 1;
 
         public byte ChannelStateCount = 0;
@@ -57,7 +61,7 @@ namespace GameWorkstore.NetworkLibrary
             NetworkDetailStats.ResetAll();
 #endif
         }
-        
+
         public virtual void Dispose()
         {
             RemoveHandler<NetworkAlivePacket>(IsAlive, true);
@@ -136,22 +140,37 @@ namespace GameWorkstore.NetworkLibrary
             return SocketId > -1;
         }
 
-        protected bool OpenSocket(int port = 0)
+        /// <summary>
+        /// Opens a new Socket if possible.
+        /// </summary>
+        /// <param name="port">Required port. Pass 0 to return any available.</param>
+        /// <param name="onOpenSocketResult">Returns the result of open socket operation.</param>
+        protected IEnumerator OpenSocket(int port, Action<bool> onOpenSocketResult)
         {
             if (HasSocket())
             {
                 Log("Cannot open socket because socket is already open.", DebugLevel.ERROR);
-                return false;
+                onOpenSocketResult?.Invoke(false);
+                yield break;
             }
 
-            SocketId = (short)NetworkTransport.AddHost(GetHostTopology(), port);
-            var socketInitialized = HasSocket();
-            if (socketInitialized)
+            for (float t = 0; t < 10; t += Time.deltaTime)
             {
-                _eventService.Update.Register(UpdateConnection);
+                if (_hostInitialization < MaxNumberOfHosts)
+                {
+                    SocketId = (short)NetworkTransport.AddHost(GetHostTopology(), port);
+                    var socketInitialized = HasSocket();
+                    if (socketInitialized)
+                    {
+                        _eventService.Update.Register(UpdateConnection);
+                        _hostInitialization++;
+                    }
+                    onOpenSocketResult?.Invoke(socketInitialized);
+                    yield break;
+                }
+                yield return null;
             }
-
-            return socketInitialized;
+            onOpenSocketResult?.Invoke(false);
         }
 
         protected void CloseSocket()
@@ -161,6 +180,7 @@ namespace GameWorkstore.NetworkLibrary
                 Log("Cannot close socket because socket isn't open.", DebugLevel.ERROR);
                 return;
             }
+            _hostInitialization--;
             _eventService.Update.Unregister(UpdateConnection);
             NetworkTransport.RemoveHost(SocketId);
             SocketId = -1;
@@ -229,7 +249,7 @@ namespace GameWorkstore.NetworkLibrary
             return (NetworkError)error == NetworkError.Ok;
         }
 
-        protected NetConnection CreatePreConnection(short connectionId)
+        protected INetConnection CreatePreConnection(short connectionId)
         {
             var conn = new NetConnection(SocketId, connectionId, GetHostTopology(), SimulationTime(), PreHandlers);
             PreConnections.Add(connectionId, conn);
@@ -241,15 +261,25 @@ namespace GameWorkstore.NetworkLibrary
             return PreConnections.Remove(connectionId);
         }
 
-        protected NetConnection CreateConnection(short connectionId)
+        protected INetConnection CreateConnection(short connectionId)
         {
             var conn = new NetConnection(SocketId, connectionId, GetHostTopology(), SimulationTime(), Handlers);
             Connections.Add(connectionId, conn);
             return conn;
         }
 
+        protected INetConnection CreateLocalConnection(short connectionId, NetworkHandlers clientHandlers)
+        {
+            var conn = new LocalConnection(SocketId, connectionId, GetHostTopology(), SimulationTime(), Handlers, clientHandlers);
+            Connections.Add(connectionId, conn);
+            return conn.OtherConnection;
+        }
+
         protected bool RemoveConnection(short connectionId)
         {
+            if (!Connections.TryGetValue(connectionId, out var conn)) return false;
+            if (conn is LocalConnection) return Connections.Remove(connectionId);
+            NetworkTransport.Disconnect(conn.HostId, conn.LocalConnectionId, out _);
             return Connections.Remove(connectionId);
         }
 
@@ -281,7 +311,7 @@ namespace GameWorkstore.NetworkLibrary
         public void AddProtoHandler<T>(Action<ProtobufPacket<T>> function, bool preHandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();
-            if(preHandler)
+            if (preHandler)
             {
                 PreHandlers.RegisterProtoHandler(code, function);
             }
@@ -296,7 +326,7 @@ namespace GameWorkstore.NetworkLibrary
             var code = ProtobufPacketExtensions.Code<T>();
             return preHandler ? PreHandlers.ContainsProtoHandler(code, function) : Handlers.ContainsProtoHandler(code, function);
         }
-        
+
         public bool RemoveProtoHandler<T>(Action<ProtobufPacket<T>> function, bool preHandler = false) where T : IMessage<T>, new()
         {
             var code = ProtobufPacketExtensions.Code<T>();

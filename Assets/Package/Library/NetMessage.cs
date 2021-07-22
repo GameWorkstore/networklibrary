@@ -129,7 +129,7 @@ namespace GameWorkstore.NetworkLibrary
     public class NetMessage
     {
         public uint Type;
-        public NetConnection Conn;
+        public INetConnection Conn;
         public NetReader Reader;
         public int ChannelId;
 

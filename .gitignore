@@ -8,3 +8,5 @@ obj/*
 *.csproj
 *.sln
 .vscode/
+.vs/
+.vsconfig

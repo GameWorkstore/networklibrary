@@ -110,6 +110,7 @@ namespace Testing
                 {
                     gate.Release();
                     Assert.True(connected);
+                    Assert.AreEqual(NetworkClientState.Connected, client.GetCurrentState());
                 });
             });
             yield return gate;

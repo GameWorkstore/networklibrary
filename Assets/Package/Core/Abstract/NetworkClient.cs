@@ -120,9 +120,9 @@ namespace GameWorkstore.NetworkLibrary
             {
                 if (result)
                 {
-                    _state = NetworkClientState.Connecting;
                     Conn = server.CreateLocalConnection(Handlers);
                     Connections.Add(Conn.LocalConnectionId, Conn);
+                    _state = NetworkClientState.Connected;
                 }
                 else
                 {

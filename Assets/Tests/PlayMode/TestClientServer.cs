@@ -14,7 +14,7 @@ namespace Testing
 {
     public class TestBench
     {
-        private static int Port(int offset) { return 1000 + offset; }
+        private static int Port(int offset) { return 9000 + offset; }
 
         [Test]
         public void HashCode()
@@ -365,6 +365,38 @@ namespace Testing
                         gate.Release();
                         Assert.AreEqual("bcd",package.BValue);
                     });
+                });
+            });
+            yield return gate;
+        }
+
+        [UnityTest]
+        public IEnumerator SendMultipleReliablePacketsFromClientToServer()
+        {
+            const string ip = "127.0.0.1";
+            int port = Port(10);
+            const string sendingContent = "af1";
+            using var server = new TestingServer();
+            using var client = new TestingClient();
+            var gate = new Gate();
+            var ping = 0;
+            server.Init(port, initialized =>
+            {
+                client.Connect(ip, port, (connected, _) =>
+                {
+                    server.AddHandler<TestingPackage>(package =>
+                    {
+                        ping++;
+                        if(ping >= 16) gate.Release();
+                    });
+                    var sending = new TestingPackage()
+                    {
+                        Value = sendingContent
+                    };
+                    for(int i = 0; i < 16; i++)
+                    {
+                        client.Send(sending, server.ChannelReliable);
+                    }
                 });
             });
             yield return gate;

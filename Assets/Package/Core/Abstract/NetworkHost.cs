@@ -419,7 +419,8 @@ namespace GameWorkstore.NetworkLibrary
 
         private void DisconnectTimeoutPreConnections()
         {
-            foreach (var conn in PreConnections.Where(Timeout).Select(ConnectionId))
+            var preConns = PreConnections.Where(Timeout).Select(ConnectionId).ToArray();
+            foreach (var conn in preConns)
             {
                 RefusePreConnection(conn);
             }

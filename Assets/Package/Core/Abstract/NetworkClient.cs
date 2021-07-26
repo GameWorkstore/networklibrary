@@ -93,6 +93,11 @@ namespace GameWorkstore.NetworkLibrary
             }));
         }
 
+        public void ConnectToLocalServer<T>(NetworkHostService<T> serverService, Action<bool, INetConnection> onConnect = null) where T: NetworkHost, new()
+        {
+            ConnectToLocalServer(serverService.Instance, onConnect);
+        }
+
         public void ConnectToLocalServer(NetworkHost server, Action<bool, INetConnection> onConnect = null)
         {
             _onConnect = onConnect;
